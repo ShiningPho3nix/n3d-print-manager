@@ -11,6 +11,8 @@ import os
 import subprocess
 from pathlib import Path
 
+DESIGNS_DIR = "Designs"
+
 class PokemonStatusTracker:
     def __init__(self, root):
         self.root = root
@@ -21,6 +23,7 @@ class PokemonStatusTracker:
         self.base_dir = Path(__file__).parent
         os.chdir(self.base_dir)
 
+        self.designs_dir = self.base_dir / DESIGNS_DIR
         self.status_file = self.base_dir / "pokemon-status.json"
         self.status_data = {}
         self.checkboxes = {}
@@ -126,14 +129,15 @@ class PokemonStatusTracker:
 
         # Find all pokemon folders (format: #### - Name)
         pokemon_folders = []
-        for item in sorted(self.base_dir.iterdir()):
-            if item.is_dir() and len(item.name) >= 4 and item.name[:4].isdigit():
-                pokemon_folders.append(item)
+        if self.designs_dir.is_dir():
+            for item in sorted(self.designs_dir.iterdir()):
+                if item.is_dir() and len(item.name) >= 4 and item.name[:4].isdigit():
+                    pokemon_folders.append(item)
 
         if not pokemon_folders:
             ttk.Label(
                 self.scrollable_frame,
-                text="No Pokemon folders found",
+                text=f"No Pokemon folders found in {DESIGNS_DIR}/",
                 font=('Arial', 12)
             ).pack(pady=20)
             return
@@ -222,7 +226,7 @@ class PokemonStatusTracker:
                 row += 1
 
         # Add Pokeballs at the end (each ball type as individual entry)
-        pokeballs_dir = self.base_dir / "Pokeballs"
+        pokeballs_dir = self.designs_dir / "Pokeballs"
         if pokeballs_dir.exists() and pokeballs_dir.is_dir():
             # Add separator
             separator_frame = ttk.Frame(self.scrollable_frame)
@@ -388,7 +392,7 @@ class PokemonStatusTracker:
                     [bash_cmd, str(script_path)],
                     cwd=str(self.base_dir),
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     text=True,
                     encoding='utf-8',
                     errors='replace',
@@ -398,8 +402,12 @@ class PokemonStatusTracker:
                 )
 
                 # Filter patterns
-                skip_patterns = ['📋', '🎯', '📝', '📦 Ball Type', '📁 Target:', '✓ Created', '💡 Using']
-                keep_patterns = ['Processing:', '🎱', '✅', '⚠️', '===', 'Found', 'complete', 'Extracting', 'Extraction', 'Moved', 'ZIP', '→', 'Organizing']
+                skip_patterns = ['✓ Base form']
+                keep_patterns = [
+                    'Processing:', '===', 'Found', 'No ZIP', 'Skipping',
+                    'Extracting', 'Extraction', 'Organizing', 'complete',
+                    '🎱', '🎨', '✅', '❌', '⚠️', '🗑️', '↳', '•'
+                ]
                 prev_was_separator = False
 
                 output_text.tag_config('error', foreground='red')
@@ -432,15 +440,6 @@ class PokemonStatusTracker:
 
                 # Wait for process to complete
                 returncode = process.wait()
-
-                # Read any stderr
-                stderr = process.stderr.read()
-                if stderr:
-                    # Filter out grep core dump errors
-                    error_lines = [l for l in stderr.split('\n') if l and 'core dumped' not in l.lower()]
-                    if error_lines:
-                        output_text.insert(tk.END, "\n\nErrors:\n", 'error')
-                        output_text.insert(tk.END, '\n'.join(error_lines), 'error')
 
                 output_text.see(tk.END)
 
