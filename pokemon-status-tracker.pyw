@@ -8,10 +8,14 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
+import queue
 import subprocess
+import threading
 from pathlib import Path
 
-DESIGNS_DIR = "Designs"
+from pokemon_organizer.config import DESIGNS_DIR, POKEBALLS_FOLDER
+from pokemon_organizer.events import Event
+from pokemon_organizer.runner import run_all
 
 class PokemonStatusTracker:
     def __init__(self, root):
@@ -226,7 +230,7 @@ class PokemonStatusTracker:
                 row += 1
 
         # Add Pokeballs at the end (each ball type as individual entry)
-        pokeballs_dir = self.designs_dir / "Pokeballs"
+        pokeballs_dir = self.designs_dir / POKEBALLS_FOLDER
         if pokeballs_dir.exists() and pokeballs_dir.is_dir():
             # Add separator
             separator_frame = ttk.Frame(self.scrollable_frame)
@@ -243,7 +247,7 @@ class PokemonStatusTracker:
             # Add each ball type as individual entry
             for ball_folder in ball_folders:
                 ball_name = ball_folder.name
-                ball_path = f"Pokeballs/{ball_name}"
+                ball_path = f"{POKEBALLS_FOLDER}/{ball_name}"
 
                 # Frame for this ball
                 ball_frame = ttk.Frame(self.scrollable_frame)
@@ -310,23 +314,12 @@ class PokemonStatusTracker:
 
     def organize_files(self):
         """Extract ZIPs (if any) and organize files"""
-        script_path = self.base_dir / "extract-and-organize.sh"
-
-        if not script_path.exists():
-            messagebox.showerror(
-                "Error",
-                "extract-and-organize.sh not found!\n\nMake sure the script is in the same folder."
-            )
-            return
-
-        # Create progress window
         progress_window = tk.Toplevel(self.root)
         progress_window.title("Organizing Files...")
         progress_window.geometry("600x400")
         progress_window.transient(self.root)
         progress_window.grab_set()
 
-        # Text widget for output
         text_frame = ttk.Frame(progress_window, padding="10")
         text_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -337,7 +330,6 @@ class PokemonStatusTracker:
         output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         output_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Button frame
         button_frame = ttk.Frame(progress_window, padding="10")
         button_frame.pack(fill=tk.X, pady=10)
 
@@ -349,118 +341,51 @@ class PokemonStatusTracker:
         )
         close_button.pack(side=tk.RIGHT, pady=5)
 
-        # Run script in separate thread to avoid freezing GUI
-        import threading
+        output_text.tag_config('error', foreground='red')
+        output_text.tag_config('warning', foreground='#b36b00')
+        output_text.tag_config('summary', foreground='green', font=('Consolas', 9, 'bold'))
 
-        def run_script():
+        output_text.insert(tk.END, "Starting organization...\n\n")
+
+        events = queue.Queue()
+
+        def worker():
             try:
-                output_text.insert(tk.END, "Starting organization...\n\n")
-                output_text.see(tk.END)
-                progress_window.update()
-
-                # Find bash executable
-                bash_paths = [
-                    'C:\\Program Files\\Git\\bin\\bash.exe',
-                    'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
-                    'bash'  # fallback
-                ]
-
-                bash_cmd = None
-                for bash_path in bash_paths:
-                    try:
-                        if os.path.exists(bash_path) or bash_path == 'bash':
-                            bash_cmd = bash_path
-                            break
-                    except:
-                        continue
-
-                if not bash_cmd:
-                    raise Exception("Could not find bash executable")
-
-                # Run bash script with live output
-                # Hide console window on Windows
-                CREATE_NO_WINDOW = 0x08000000
-                startupinfo = None
-                creationflags = 0
-
-                if os.name == 'nt':  # Windows
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    creationflags = CREATE_NO_WINDOW
-
-                process = subprocess.Popen(
-                    [bash_cmd, str(script_path)],
-                    cwd=str(self.base_dir),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    encoding='utf-8',
-                    errors='replace',
-                    shell=False,
-                    startupinfo=startupinfo,
-                    creationflags=creationflags
-                )
-
-                # Filter patterns
-                skip_patterns = ['✓ Base form']
-                keep_patterns = [
-                    'Processing:', '===', 'Found', 'No ZIP', 'Skipping',
-                    'Extracting', 'Extraction', 'Organizing', 'complete',
-                    '🎱', '🎨', '✅', '❌', '⚠️', '🗑️', '↳', '•'
-                ]
-                prev_was_separator = False
-
-                output_text.tag_config('error', foreground='red')
-                output_text.tag_config('success', foreground='green', font=('Consolas', 9, 'bold'))
-
-                # Read output line by line (live)
-                while True:
-                    line = process.stdout.readline()
-                    if not line:
-                        break
-
-                    # Filter verbose lines
-                    if any(pattern in line for pattern in skip_patterns):
-                        continue
-
-                    # Skip duplicate separators
-                    is_separator = line.strip().startswith('━')
-                    if is_separator:
-                        if prev_was_separator:
-                            continue
-                        prev_was_separator = True
-                    else:
-                        prev_was_separator = False
-
-                    # Show important lines
-                    if any(x in line for x in keep_patterns):
-                        output_text.insert(tk.END, line)
-                        output_text.see(tk.END)
-                        progress_window.update()
-
-                # Wait for process to complete
-                returncode = process.wait()
-
-                output_text.see(tk.END)
-
-                if returncode == 0:
-                    output_text.insert(tk.END, "\n✅ Organization complete!\n", 'success')
-                else:
-                    output_text.insert(tk.END, f"\n❌ Script failed with exit code {returncode}\n", 'error')
-
-            except subprocess.TimeoutExpired:
-                output_text.insert(tk.END, "\n❌ Script timed out after 5 minutes\n", 'error')
-            except Exception as e:
-                output_text.insert(tk.END, f"\n❌ Error running script:\n{e}\n", 'error')
+                run_all(self.base_dir, emit=events.put)
+            except Exception as error:
+                events.put(Event('error', f"❌ Error while organizing:\n{error}"))
             finally:
-                close_button.config(state='normal')
-                output_text.see(tk.END)
-                # Refresh the list after organizing
-                self.root.after(100, self.refresh)
+                events.put(None)
 
-        # Start in thread
-        thread = threading.Thread(target=run_script, daemon=True)
-        thread.start()
+        def drain_events():
+            finished = False
+
+            while True:
+                try:
+                    event = events.get_nowait()
+                except queue.Empty:
+                    break
+
+                if event is None:
+                    finished = True
+                    break
+
+                if event.verbose:
+                    continue
+
+                tag = event.kind if event.kind in ('error', 'warning', 'summary') else ''
+                output_text.insert(tk.END, f"{event.message}\n", tag)
+
+            output_text.see(tk.END)
+
+            if finished:
+                close_button.config(state='normal')
+                self.refresh()
+            else:
+                self.root.after(50, drain_events)
+
+        threading.Thread(target=worker, daemon=True).start()
+        self.root.after(50, drain_events)
 
 def main():
     root = tk.Tk()
