@@ -1,176 +1,105 @@
 #!/bin/bash
 
-# Script to organize Pokemon 3D print files into folders using pokemon-dex.json
-# Pattern: {dex#} - {base_name}/[variant]/file.3mf
-
-# set -e  # Temporarily disabled for debugging
-
-UNSORTED_3MF="_Unsorted/3mf"
-
-move_to_unsorted() {
-    local file="$1"
-
-    mkdir -p "$UNSORTED_3MF"
-    if [ -f "$UNSORTED_3MF/$file" ]; then
-        echo "  ⚠️  File already exists in collection folder, overwriting..."
-    fi
-    mv -f "$file" "$UNSORTED_3MF/"
-    echo "  ⚠️  Moved to collection folder: $UNSORTED_3MF/"
-}
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir" || exit 1
+source "$script_dir/organizer-config.sh"
 
 echo "=== Pokemon 3D Files Organizer (Database-driven) ==="
 echo ""
 
-# Check if pokemon-dex.json exists
-if [ ! -f "pokemon-dex.json" ]; then
-    echo "❌ Error: pokemon-dex.json not found in current directory"
+if [ ! -f "$DEX_DATABASE" ]; then
+    echo "❌ Error: $DEX_DATABASE not found in $script_dir"
     exit 1
 fi
 
-# Find all .3mf files in current directory (not in subdirectories)
-shopt -s nullglob
-files=(*.3mf)
-
-if [ ${#files[@]} -eq 0 ]; then
-    echo "✓ No .3mf files found in current directory."
-    exit 0
-fi
-
-echo "Found ${#files[@]} file(s) to organize:"
-echo ""
-
-# Profile/version keywords that indicate end of pokemon name
 profile_keywords="AMS|SPLIT|MC|Profile|V[0-9]|w/|w\s"
+form_variant_keywords="^(Mega|Alolan|Galarian|Hisuian|Paldean|Gmax|Gigantamax)"
+custom_variant_keywords="(Christmas|Halloween|Female|Male|Shiny|Shadow|NO |Open)"
 
-for file in "${files[@]}"; do
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Processing: $file"
+CLASSIFY_RESULT=""
+CLASSIFY_NOTE=""
 
-    # Normalize filename: replace + with space, remove # at start
-    normalized=$(echo "$file" | sed 's/+/ /g' | sed 's/^#//')
+strip_extension() {
+    echo "$1" | sed -E 's/\.([A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*)$//'
+}
 
-    # Extract dex number (first 4 digits)
+classify_name() {
+    local raw_name="$1"
+    CLASSIFY_RESULT=""
+    CLASSIFY_NOTE=""
+
+    local normalized
+    normalized=$(echo "$raw_name" | sed 's/+/ /g' | sed 's/^#//')
+    normalized=$(strip_extension "$normalized")
+
+    local dex_number
     dex_number=$(echo "$normalized" | grep -oE '^[0-9]{4}')
 
-    # Check if this is a Pokeball file (special case)
-    is_pokemon=false
+    local is_pokemon=false
     if [ -n "$dex_number" ]; then
-        # Has dex number, check if in database
-        if grep -q "\"$dex_number\":" pokemon-dex.json; then
+        if grep -q "\"$dex_number\":" "$DEX_DATABASE"; then
             is_pokemon=true
         fi
     fi
 
     if [ "$is_pokemon" = false ]; then
-        # No valid pokemon - check if it's a Pokeball
         if echo "$normalized" | grep -qiE "ball"; then
-            echo "  🎱 Pokeball detected!"
+            local ball_name
+            ball_name=$(echo "$normalized" | sed -E 's/ - .*//')
+            ball_name=$(echo "$ball_name" | xargs)
 
-            # Extract ball name (everything before first " - " or the whole name)
-            ball_name=$(echo "$normalized" | sed 's/\.3mf$//' | sed -E 's/ - .*//')
-            ball_name=$(echo "$ball_name" | xargs)  # trim whitespace
-
-            echo "  📦 Ball Type: $ball_name"
-
-            # Create Pokeballs/[BallName] folder structure
-            main_pokeballs_folder="Pokeballs"
-            ball_folder="${main_pokeballs_folder}/${ball_name}"
-
-            if [ ! -d "$main_pokeballs_folder" ]; then
-                mkdir -p "$main_pokeballs_folder"
+            if [ -n "$ball_name" ]; then
+                CLASSIFY_RESULT="${POKEBALLS_FOLDER}/${ball_name}"
+                CLASSIFY_NOTE="🎱 Pokeball: $ball_name"
+                return 0
             fi
-
-            if [ ! -d "$ball_folder" ]; then
-                mkdir -p "$ball_folder"
-                echo "  ✓ Created folder: $ball_folder"
-            fi
-
-            # Move file
-            if [ -f "$ball_folder/$file" ]; then
-                echo "  ⚠️  File already exists, overwriting..."
-                mv -f "$file" "$ball_folder/"
-                echo "  ✅ Moved and overwrote file in: $ball_folder/"
-            else
-                mv "$file" "$ball_folder/"
-                echo "  ✅ Moved to: $ball_folder/"
-            fi
-
-            echo ""
-            continue
-        else
-            echo "  ⚠️  Warning: Not a Pokemon (no valid dex number) and not a Pokeball"
-            move_to_unsorted "$file"
-            echo ""
-            continue
         fi
+        return 1
     fi
 
-    echo "  📋 Dex Number: $dex_number"
-
-    # Get base name from database
-    base_name=$(grep -o "\"$dex_number\": \"[^\"]*\"" pokemon-dex.json | cut -d'"' -f4)
+    local base_name
+    base_name=$(grep -o "\"$dex_number\": \"[^\"]*\"" "$DEX_DATABASE" | cut -d'"' -f4)
 
     if [ -z "$base_name" ]; then
-        echo "  ⚠️  Warning: Dex number $dex_number not found in database"
-        move_to_unsorted "$file"
-        echo ""
-        continue
+        return 1
     fi
 
-    echo "  🎯 Base Pokemon: $base_name"
-
-    # Extract the part after dex number and before file extension
-    # Remove dex number and leading separators
+    local after_dex
     after_dex=$(echo "$normalized" | sed -E "s/^$dex_number\s*-?\s*//")
-    # Remove file extension
-    after_dex=$(echo "$after_dex" | sed 's/\.3mf$//')
 
-    # Split by " - " to get segments
+    local segments
     IFS=' - ' read -ra segments <<< "$after_dex"
 
-    # Find where profile/version info starts
-    pokemon_segments=()
-    found_profile=false
-
+    local pokemon_segments=()
+    local segment
     for segment in "${segments[@]}"; do
-        # Check if this segment matches profile keywords
         if echo "$segment" | grep -qiE "$profile_keywords"; then
-            found_profile=true
             break
         fi
 
-        # Only add non-empty segments
         if [ -n "$segment" ]; then
             pokemon_segments+=("$segment")
         fi
     done
 
-    # Join pokemon segments
+    local pokemon_name
     pokemon_name=$(IFS=" - "; echo "${pokemon_segments[*]}")
-    pokemon_name=$(echo "$pokemon_name" | xargs) # trim whitespace
+    pokemon_name=$(echo "$pokemon_name" | xargs)
 
-    echo "  📝 Extracted Name: $pokemon_name"
+    local variant=""
+    local variant_folder=""
 
-    # Detect variant by comparing with base name
-    variant=""
-    variant_folder=""
-
-    # Case 1: Name exactly matches base (no variant)
     if [ "$pokemon_name" = "$base_name" ]; then
-        echo "  ✓ No variant detected (base form)"
-        variant=""
+        CLASSIFY_NOTE="✓ Base form of $base_name"
 
-    # Case 2: Name contains base name (variant exists)
     elif [[ "$pokemon_name" == *"$base_name"* ]]; then
-        # Check if base name is in the segments
-        base_found=false
-        prefix_parts=()
-        suffix_parts=()
-        after_base=false
+        local prefix_parts=()
+        local suffix_parts=()
+        local after_base=false
+        local seg
 
         for seg in "${pokemon_segments[@]}"; do
             if [ "$seg" = "$base_name" ] || [[ "$seg" == *"$base_name"* ]]; then
-                base_found=true
                 after_base=true
             elif [ "$after_base" = false ]; then
                 prefix_parts+=("$seg")
@@ -179,90 +108,165 @@ for file in "${files[@]}"; do
             fi
         done
 
-        # Build variant name
         if [ ${#prefix_parts[@]} -gt 0 ] || [ ${#suffix_parts[@]} -gt 0 ]; then
-            # Combine prefix and suffix for variant
             if [ ${#prefix_parts[@]} -gt 0 ] && [ ${#suffix_parts[@]} -gt 0 ]; then
-                # Both prefix and suffix (e.g., "Mega Charizard X")
                 variant=$(IFS=" "; echo "${prefix_parts[*]} ${base_name} ${suffix_parts[*]}")
                 variant_folder="$variant"
             elif [ ${#prefix_parts[@]} -gt 0 ]; then
-                # Only prefix
                 variant=$(IFS=" "; echo "${prefix_parts[*]}")
 
-                # For form variants (Mega, Alolan, etc.), include base name in folder
-                if echo "$variant" | grep -qiE "^(Mega|Alolan|Galarian|Hisuian|Paldean|Gmax|Gigantamax)"; then
+                if echo "$variant" | grep -qiE "$form_variant_keywords"; then
                     variant_folder="$variant $base_name"
                 else
-                    # For other variants (Female, Male, etc.), use just the variant
                     variant_folder="$variant"
                 fi
             else
-                # Only suffix (e.g., "Bulbasaur Christmas" -> folder: "Christmas")
                 variant=$(IFS=" "; echo "${suffix_parts[*]}")
                 variant_folder="$variant"
             fi
 
-            echo "  🎨 Variant detected: $variant_folder"
+            CLASSIFY_NOTE="🎨 Variant: $variant_folder"
+        else
+            CLASSIFY_NOTE="✓ Base form of $base_name"
         fi
 
-    # Case 3: Name doesn't contain base name (might be typo or custom name)
     else
-        # Check if it's a known form variant (Mega, Alolan, etc.)
-        if echo "$pokemon_name" | grep -qiE "^(Mega|Alolan|Galarian|Hisuian|Paldean)"; then
-            # Known form variant - no warning needed
+        if echo "$pokemon_name" | grep -qiE "$form_variant_keywords"; then
             variant_folder="$pokemon_name"
-            echo "  🎨 Variant: $variant_folder"
-        # Check if it looks like a custom variant (contains keywords)
-        elif echo "$pokemon_name" | grep -qiE "(Christmas|Halloween|Female|Male|Shiny|Shadow|NO |Open)"; then
-            # Custom variant
+            CLASSIFY_NOTE="🎨 Variant: $variant_folder"
+        elif echo "$pokemon_name" | grep -qiE "$custom_variant_keywords"; then
             variant_folder="$pokemon_name"
-            echo "  🎨 Custom Variant: $variant_folder"
+            CLASSIFY_NOTE="🎨 Custom variant: $variant_folder"
         else
-            # Likely a typo - treat as base form (no variant folder)
-            echo "  ⚠️  Warning: Name '$pokemon_name' might be typo of '$base_name'"
-            echo "  💡 Treating as base form (using database name for folder)"
-            # No variant_folder set = goes to main folder
+            CLASSIFY_NOTE="⚠️  Name '$pokemon_name' looks like a typo of '$base_name', using base form"
         fi
     fi
 
-    # Create folder structure
-    main_folder="${dex_number} - ${base_name}"
+    local main_folder="${dex_number} - ${base_name}"
 
     if [ -n "$variant_folder" ]; then
-        # Variant exists - create subfolder
-        target_folder="${main_folder}/${variant_folder}"
-        echo "  📁 Target: $target_folder/"
+        CLASSIFY_RESULT="${main_folder}/${variant_folder}"
     else
-        # No variant - put directly in main folder
-        target_folder="$main_folder"
-        echo "  📁 Target: $target_folder/"
+        CLASSIFY_RESULT="$main_folder"
     fi
 
-    # Create folders
-    if [ ! -d "$main_folder" ]; then
-        mkdir -p "$main_folder"
-        echo "  ✓ Created main folder: $main_folder"
+    return 0
+}
+
+classify_by_parent_folders() {
+    local file_path="$1"
+    local parent_dir
+    parent_dir=$(dirname "$file_path")
+
+    while [ "$parent_dir" != "." ] && [ "$parent_dir" != "/" ] && [ "$parent_dir" != "$SOURCE_DIR" ]; do
+        classify_name "$(basename "$parent_dir")"
+
+        if [ -n "$CLASSIFY_RESULT" ]; then
+            return 0
+        fi
+
+        parent_dir=$(dirname "$parent_dir")
+    done
+
+    CLASSIFY_RESULT=""
+    CLASSIFY_NOTE=""
+    return 1
+}
+
+input_files=()
+
+collect_input_files() {
+    input_files=()
+
+    if [ -d "$SOURCE_DIR" ]; then
+        while IFS= read -r -d '' found_file; do
+            input_files+=("$found_file")
+        done < <(find "$SOURCE_DIR" -type f -print0)
     fi
 
-    if [ -n "$variant_folder" ] && [ ! -d "$target_folder" ]; then
-        mkdir -p "$target_folder"
-        echo "  ✓ Created variant folder: $target_folder"
+    shopt -s nullglob
+    local entry
+    for entry in ./*; do
+        [ -f "$entry" ] || continue
+
+        local entry_name="${entry#./}"
+        if is_protected_root_entry "$entry_name"; then
+            continue
+        fi
+
+        input_files+=("$entry_name")
+    done
+    shopt -u nullglob
+}
+
+collect_input_files
+
+if [ ${#input_files[@]} -eq 0 ]; then
+    echo "✓ No files found to organize."
+    exit 0
+fi
+
+echo "Found ${#input_files[@]} file(s) to organize:"
+echo ""
+
+mkdir -p "$DESIGNS_DIR"
+
+organized_count=0
+unresolved_files=()
+
+for file in "${input_files[@]}"; do
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Processing: $file"
+
+    filename=$(basename "$file")
+
+    classify_name "$filename"
+
+    if [ -z "$CLASSIFY_RESULT" ]; then
+        if classify_by_parent_folders "$file"; then
+            echo "  ↳ Classified by parent folder"
+        fi
     fi
 
-    # Move file (overwrite if exists)
-    if [ -f "$target_folder/$file" ]; then
-        echo "  ⚠️  File already exists, overwriting..."
+    if [ -z "$CLASSIFY_RESULT" ]; then
+        echo "  ⚠️  Could not classify, leaving file in place"
+        unresolved_files+=("$file")
+        echo ""
+        continue
+    fi
+
+    if [ -n "$CLASSIFY_NOTE" ]; then
+        echo "  $CLASSIFY_NOTE"
+    fi
+
+    target_folder="${DESIGNS_DIR}/${CLASSIFY_RESULT}"
+    mkdir -p "$target_folder"
+
+    if [ -f "$target_folder/$filename" ]; then
         mv -f "$file" "$target_folder/"
-        echo "  ✅ Moved and overwrote file in: $target_folder/"
+        echo "  ✅ Moved to: $target_folder/ (overwrote existing file)"
     else
         mv "$file" "$target_folder/"
-        echo "  ✅ Moved file to: $target_folder/"
+        echo "  ✅ Moved to: $target_folder/"
     fi
 
+    organized_count=$((organized_count + 1))
     echo ""
 done
 
+if [ -d "$SOURCE_DIR" ]; then
+    find "$SOURCE_DIR" -mindepth 1 -type d -empty -delete
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Organization complete!"
+echo "✅ Organization complete! Organized $organized_count file(s)."
+
+if [ ${#unresolved_files[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠️  ${#unresolved_files[@]} file(s) could not be classified and stayed in place:"
+    for unresolved in "${unresolved_files[@]}"; do
+        echo "  • $unresolved"
+    done
+fi
+
 echo ""
