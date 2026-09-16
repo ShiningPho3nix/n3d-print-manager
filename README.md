@@ -9,17 +9,35 @@ The classifier is built around N3D's file naming
 (`0025 - Pikachu - AMS Profile - V3.3mf`). Files from other creators are sorted
 only if they follow the same pattern, everything else lands in `_Unsorted/`.
 
-## Requirements
+## Download
+
+Grab the file for your system from the
+[latest release](https://github.com/ShiningPho3nix/n3d-print-manager/releases/latest),
+put it into an empty folder and start it. No Python installation is needed.
+`Source/`, `Designs/` and `pokemon-status.json` are created next to it.
+
+| Platform | File | First start |
+|----------|------|-------------|
+| Windows 10/11 (x64) | `PokemonStatusTracker-windows-x64.exe` | Windows Defender may ask for confirmation, the executable is not code signed |
+| macOS (Apple Silicon) | `PokemonStatusTracker-macos-arm64.zip` | Unzip, right click the app, choose **Open**. The app is not notarized |
+| Linux (x64) | `PokemonStatusTracker-linux-x64.tar.gz` | Needs a glibc at least as new as Ubuntu 24.04 and a desktop session |
+
+Intel Macs are not supported. The executables are built by the
+[release workflow](.github/workflows/release.yml) on GitHub's runners, nothing
+is built on a private machine.
+
+## Running From Source
 
 - Python 3.10 or newer with tkinter (ships with the standard installer)
 
-No further dependencies, standard library only. Tested on Windows 10/11.
-Opening folders from the GUI currently requires Windows Explorer.
+No further dependencies, standard library only. Works on Windows, macOS and
+Linux, the folder buttons use the file manager of the platform.
 
 ## Usage
 
 1. Drop ZIP archives or loose files into `Source/`
-2. Double click `Start Pokemon Tracker.bat` or run `python pokemon-status-tracker.pyw`
+2. Start the downloaded executable, or from source double click
+   `Start Pokemon Tracker.bat` or run `python pokemon-status-tracker.pyw`
 3. Click **Organize Files**: archives are extracted, files sorted, extracted
    archives deleted
 4. Tick finished Pokemon, the status is saved automatically
@@ -35,7 +53,8 @@ python -m pokemon_organizer --base-dir PATH  # use another folder's Source/ and 
 ```
 
 Run it from the project folder so the package can be imported. Sorting targets
-the project folder's `Designs/` unless `--base-dir` says otherwise. The command
+the project folder's `Designs/` unless `--base-dir` says otherwise, the
+database `pokemon-dex.json` is always read from the project folder. The command
 exits with `1` when a file could not be moved or an archive could not be
 unpacked.
 
@@ -94,9 +113,35 @@ and custom keywords such as Christmas, Female, Male. URL encoded names
 
 ## Customizing
 
+All of this requires running from source. The released executables embed
+`pokemon-dex.json` and the code, so they cannot be customized in place. Make
+the change in a clone of the repository, then run from source or build your
+own executable as described below.
+
 - **New Pokemon**: add `"1026": "Name"` to `pokemon-dex.json`
 - **New variant keyword**: extend `CUSTOM_VARIANT_PATTERN` in `pokemon_organizer/classifier.py`
 - **Exclude a file from sorting**: add it to `PROTECTED_ROOT_ENTRIES` in `pokemon_organizer/config.py`
+
+## Building The Executable Yourself
+
+The build uses [Nuitka](https://nuitka.net/), which compiles the Python code
+to a native executable. It needs a C compiler: MSVC on Windows, Xcode command
+line tools on macOS, gcc on Linux. Without one, `pip install ziglang` provides
+a compiler Nuitka picks up automatically.
+
+```bash
+pip install nuitka zstandard
+python -m nuitka --mode=onefile --enable-plugin=tk-inter \
+  --windows-console-mode=disable \
+  --include-data-files=pokemon-dex.json=pokemon-dex.json \
+  --output-dir=build --output-filename=PokemonStatusTracker.exe \
+  pokemon-status-tracker.pyw
+```
+
+On macOS use `--mode=app` instead of `--mode=onefile` to get an app bundle,
+on Linux drop `--windows-console-mode` and the `.exe` suffix. Linux
+additionally needs `pip install patchelf`. The exact commands the releases are
+built with are in `.github/workflows/release.yml`.
 
 ## Troubleshooting
 

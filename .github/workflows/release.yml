@@ -1,0 +1,140 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: "3.13"
+  NUITKA_VERSION: "4.2.1"
+  APP_NAME: PokemonStatusTracker
+  PRODUCT_NAME: Pokemon Status Tracker
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Check that the tag matches __version__
+        run: |
+          version="$(python -c 'import pokemon_organizer; print(pokemon_organizer.__version__)')"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match __version__ ${version}"
+            exit 1
+          fi
+      - name: Run tests
+        run: python -m unittest discover -s tests -t .
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: PokemonStatusTracker-windows-x64.exe
+          - os: macos-latest
+            artifact: PokemonStatusTracker-macos-arm64.zip
+          - os: ubuntu-latest
+            artifact: PokemonStatusTracker-linux-x64.tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Nuitka
+        run: python -m pip install "nuitka==${NUITKA_VERSION}" zstandard
+
+      - name: Install patchelf
+        if: runner.os == 'Linux'
+        run: python -m pip install patchelf
+
+      - name: Build Windows executable
+        if: runner.os == 'Windows'
+        run: |
+          python -m nuitka \
+            --mode=onefile \
+            --enable-plugin=tk-inter \
+            --windows-console-mode=disable \
+            --include-data-files=pokemon-dex.json=pokemon-dex.json \
+            --product-name="${PRODUCT_NAME}" \
+            --product-version="${GITHUB_REF_NAME#v}" \
+            --output-dir=build \
+            --output-filename="${APP_NAME}.exe" \
+            --assume-yes-for-downloads \
+            pokemon-status-tracker.pyw
+          mkdir -p dist
+          mv "build/${APP_NAME}.exe" "dist/${{ matrix.artifact }}"
+
+      - name: Build macOS app bundle
+        if: runner.os == 'macOS'
+        run: |
+          python -m nuitka \
+            --mode=app \
+            --enable-plugin=tk-inter \
+            --include-data-files=pokemon-dex.json=pokemon-dex.json \
+            --macos-app-name="${PRODUCT_NAME}" \
+            --product-name="${PRODUCT_NAME}" \
+            --product-version="${GITHUB_REF_NAME#v}" \
+            --output-dir=build \
+            --output-filename="${APP_NAME}" \
+            --assume-yes-for-downloads \
+            pokemon-status-tracker.pyw
+          mkdir -p dist
+          bundle="$(find build -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "${bundle}"
+          mv "${bundle}" "build/${PRODUCT_NAME}.app"
+          ditto -c -k --keepParent "build/${PRODUCT_NAME}.app" "dist/${{ matrix.artifact }}"
+
+      - name: Build Linux executable
+        if: runner.os == 'Linux'
+        run: |
+          python -m nuitka \
+            --mode=onefile \
+            --enable-plugin=tk-inter \
+            --include-data-files=pokemon-dex.json=pokemon-dex.json \
+            --product-name="${PRODUCT_NAME}" \
+            --product-version="${GITHUB_REF_NAME#v}" \
+            --output-dir=build \
+            --output-filename="${APP_NAME}" \
+            --assume-yes-for-downloads \
+            pokemon-status-tracker.pyw
+          mkdir -p dist
+          tar -czf "dist/${{ matrix.artifact }}" -C build "${APP_NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l dist
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file .github/RELEASE_NOTES.md \
+            --generate-notes
