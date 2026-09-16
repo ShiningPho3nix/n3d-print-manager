@@ -18,8 +18,9 @@ interface text in German. It applies to this project only.
 ### Directories
 - **Source/** - drop zone for unsorted archives and files, scanned recursively
 - **Designs/** - target root for all sorted output, never scanned as input
+- **_Unsorted/** - catch-all for anything that cannot be classified
 
-Both are created automatically and are excluded from version control.
+All three are created automatically and are excluded from version control.
 
 ### Main Scripts
 1. **organizer-config.sh**
@@ -31,7 +32,11 @@ Both are created automatically and are excluded from version control.
 2. **extract-and-organize.sh**
    - Extracts archives found in Source/ and in the project root
    - Extracts into Source/{archive name}/ preserving the archive structure
-   - Deletes an archive only after it extracted successfully
+   - Expands nested ZIPs in place, up to MAX_ZIP_DEPTH (5)
+   - Deletes an archive only after it extracted successfully, unless `KEEP_ZIPS`
+     is set (`1/true/yes`)
+   - Invalid `KEEP_ZIPS` values abort the script before anything is extracted
+     (fail-fast on a destructive step)
    - Always calls organize-pokemon.sh, even when no archive was found
 
 3. **organize-pokemon.sh**
@@ -40,7 +45,9 @@ Both are created automatically and are excluded from version control.
    - Creates folder structure: `Designs/{dex#} - {name}/[variant]/`
    - Handles special cases: Pokeballs, Mega forms, regional variants, typos
    - Classifies by file name first, then falls back to the parent folder name
-   - Leaves unresolvable files in place and reports them
+   - Moves unassignable .3mf files to `_Unsorted/3mf/`
+   - Moves unassignable other formats to `_Unsorted/other/{archive}/{path}/`
+   - Skips .zip files entirely, they belong to extract-and-organize.sh
 
 4. **pokemon-status-tracker.pyw**
    - GUI application for tracking completion status
@@ -67,7 +74,14 @@ Designs/Pokeballs/
 ├── Great Ball/
 ├── Master Ball/
 └── ...
+
+_Unsorted/
+├── 3mf/                    ← .3mf without valid dex number and not a Pokeball
+└── other/{zip-name}/       ← All non-.3mf files, original archive path preserved
 ```
+The GUI never shows `_Unsorted`: it scans `Designs/` only, and `_Unsorted/` sits
+outside that root. On top of that, `scan_and_populate()` only accepts folders
+whose first 4 characters are digits, plus `Pokeballs`.
 
 ### Variant Detection Logic
 1. **Known Form Variants**: Mega, Alolan, Galarian, Hisuian, Paldean → Full name in subfolder
@@ -97,6 +111,26 @@ Designs/Pokeballs/
 - Affected database names: `Type: Null` (0772) becomes `Type Null`,
   `Mime Jr.` (0439) becomes `Mime Jr`, which is what Windows would store anyway.
 
+### ZIP Extraction
+- `expand_nested_zips()`: iterative loop over `find -iname "*.zip"`, limited by `MAX_ZIP_DEPTH=5`
+- Iterative instead of recursive, because `find` would otherwise traverse directories the recursion is creating itself
+- Archives that fail to unpack are stored in `failed_zips` and skipped on the next pass to prevent endless retries
+- Archives are extracted **structure preserving** into `Source/{archive name}/`.
+  Never flatten them: the folder context is what the parent folder fallback and
+  the `_Unsorted/other/` path reconstruction both depend on.
+- Extensions are compared lowercase (`${extension,,}`) so `.3MF` and `.STL` are handled correctly
+
+### Classification Chain
+Four stages, in this order:
+1. File name resolves → `Designs/...`
+2. Parent folder name resolves → `Designs/...`
+3. Unresolved `.3mf` → `_Unsorted/3mf/`
+4. Unresolved other format → `_Unsorted/other/{archive}/{original path}/`
+
+Stage 2 only fires when a folder name actually resolves against the dex
+database. Archives with freely named folders simply fall through to stage 3
+or 4, so the stage can add matches but never misfile anything.
+
 ### GUI Live Output
 - Uses `subprocess.Popen()` instead of `subprocess.run()` for live output
 - Filters verbose lines for cleaner display
@@ -105,7 +139,8 @@ Designs/Pokeballs/
 ### Error Handling
 - Typos in filenames: Create correct folder based on dex number from database
 - Missing dex numbers: Check if it's a Pokeball, then try the parent folder name
-- Still unresolvable: Leave the file untouched and list it in the final report
+- Still unresolvable `.3mf`: Moved to `_Unsorted/3mf/`
+- Still unresolvable other formats: Moved to `_Unsorted/other/`, never deleted
 - Duplicate files: Overwrite existing files
 - Failed extraction: Keep the archive, remove the partial temporary folder
 
@@ -113,7 +148,7 @@ Designs/Pokeballs/
 
 ### Bash Scripts
 - Use double brackets `[[ ]]` for string comparisons
-- Use `xargs` for trimming whitespace
+- Use `trim_whitespace()` for trimming, never `xargs`
 - Normalize filenames: Replace `+` with spaces, remove `#` prefix
 - Filter out profile keywords: AMS, SPLIT, MC, Profile, V[0-9]
 
@@ -144,9 +179,13 @@ Designs/Pokeballs/
 3. **Custom Variant**: `0001 - Bulbasaur - Christmas - AMS.3mf` → `Designs/0001 - Bulbasaur/Christmas/`
 4. **Typo**: `0282 - Gardivoir - AMS.3mf` → `Designs/0282 - Gardevoir/` (no subfolder)
 5. **Pokeball**: `Great Ball - AMS.3mf` → `Designs/Pokeballs/Great Ball/`
-6. **Parent folder fallback**: `Source/batch/0001 - Bulbasaur/preview.png` → `Designs/0001 - Bulbasaur/`
-7. **Unresolvable**: `Source/batch/notes.txt` → stays in place, reported at the end
-8. **Protected file**: `CLAUDE.md` in the project root → never treated as input
+6. **Deep nesting**: `Source/batch/a/b/c/d/e/0025 - Pikachu - AMS.3mf` → `Designs/0025 - Pikachu/`
+7. **Nested ZIP**: `Source/batch/x/inner.zip` → unpacked, contents processed like any other file
+8. **Parent folder fallback**: `Source/batch/0001 - Bulbasaur/preview.png` → `Designs/0001 - Bulbasaur/`
+9. **Foreign format**: `Source/batch/a/b/handbuch.pdf` → `_Unsorted/other/batch/a/b/handbuch.pdf`
+10. **No dex number**: `mystery-model.3mf` → `_Unsorted/3mf/`
+11. **Protected file**: `CLAUDE.md` in the project root → never treated as input
+12. **Archive at organize time**: `Source/kept.zip` → skipped, reported, left in place
 
 ## Maintenance
 

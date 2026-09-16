@@ -4,10 +4,73 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$script_dir" || exit 1
 source "$script_dir/organizer-config.sh"
 
+KEEP_ZIPS="${KEEP_ZIPS:-0}"
+
+case "${KEEP_ZIPS,,}" in
+    0|false|no)
+        keep_zips=false
+        ;;
+    1|true|yes)
+        keep_zips=true
+        ;;
+    *)
+        echo "❌ Invalid KEEP_ZIPS value: '$KEEP_ZIPS' (expected 0/1, false/true, no/yes)"
+        exit 1
+        ;;
+esac
+
 echo "=== Pokemon ZIP Extractor & Organizer ==="
 echo ""
 
 mkdir -p "$SOURCE_DIR"
+
+expand_nested_zips() {
+    local root="$1"
+    local level=0
+    local processed=0
+    local zip_path target suffix
+    local -A failed_zips=()
+    local nested=()
+
+    while [ $level -lt $MAX_ZIP_DEPTH ]; do
+        nested=()
+        while IFS= read -r -d '' zip_path; do
+            nested+=("$zip_path")
+        done < <(find "$root" -type f -iname "*.zip" -print0)
+
+        [ ${#nested[@]} -eq 0 ] && break
+
+        processed=0
+        for zip_path in "${nested[@]}"; do
+            [ -n "${failed_zips[$zip_path]+set}" ] && continue
+
+            target="${zip_path%.*}"
+            suffix=0
+            while [ -e "$target" ]; do
+                suffix=$((suffix + 1))
+                target="${zip_path%.*}__$suffix"
+            done
+
+            mkdir -p "$target"
+            if unzip -q "$zip_path" -d "$target" 2>/dev/null; then
+                rm -f "$zip_path"
+                echo "  ✅ Unpacked nested ZIP: $(basename "$zip_path")"
+            else
+                rm -rf "$target"
+                failed_zips["$zip_path"]=1
+                echo "  ⚠️  Could not unpack nested ZIP: $(basename "$zip_path")"
+            fi
+            processed=$((processed + 1))
+        done
+
+        [ $processed -eq 0 ] && break
+        level=$((level + 1))
+    done
+
+    if [ $level -ge $MAX_ZIP_DEPTH ] && [ -n "$(find "$root" -type f -iname '*.zip' -print -quit)" ]; then
+        echo "  ⚠️  Maximum ZIP depth ($MAX_ZIP_DEPTH) reached, remaining ZIPs stay packed"
+    fi
+}
 
 zip_files=()
 
@@ -75,9 +138,12 @@ else
             mv "$temp_dir" "$target_dir"
 
             echo "  ✅ Extracted to: $target_dir/"
+            expand_nested_zips "$target_dir"
             extracted_count=$((extracted_count + 1))
 
-            if rm -f "$zip_file"; then
+            if [ "$keep_zips" = true ]; then
+                echo "  📌 KEEP_ZIPS is active, archive kept: $zip_file"
+            elif rm -f "$zip_file"; then
                 echo "  🗑️  Deleted archive: $zip_file"
                 deleted_count=$((deleted_count + 1))
             else
@@ -93,7 +159,11 @@ else
     done
 
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Extraction complete: $extracted_count successful, $failed_count failed, $deleted_count archive(s) deleted"
+    if [ "$keep_zips" = true ]; then
+        echo "Extraction complete: $extracted_count successful, $failed_count failed, ${#zip_files[@]} archive(s) kept"
+    else
+        echo "Extraction complete: $extracted_count successful, $failed_count failed, $deleted_count archive(s) deleted"
+    fi
     echo ""
 fi
 

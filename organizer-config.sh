@@ -2,8 +2,12 @@
 
 SOURCE_DIR="Source"
 DESIGNS_DIR="Designs"
+UNSORTED_DIR="_Unsorted"
+UNSORTED_3MF="${UNSORTED_DIR}/3mf"
+UNSORTED_OTHER="${UNSORTED_DIR}/other"
 POKEBALLS_FOLDER="Pokeballs"
 DEX_DATABASE="pokemon-dex.json"
+MAX_ZIP_DEPTH=5
 
 PROTECTED_ROOT_ENTRIES=(
     ".gitattributes"

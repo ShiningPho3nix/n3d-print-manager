@@ -6,11 +6,14 @@ Automatic organization and tracking of Pokemon 3D print files, with sorting by P
 
 ### 🗂️ Automatic Organization
 - **ZIP extraction**: Unpacks downloaded archives automatically
+- **Nested ZIPs**: Archives inside archives are unpacked too (up to 5 levels)
+- **Any folder depth**: Files are found regardless of the archive's structure
 - **Structured sorting**: Files are organized by dex number and variant
 - **Database backed**: Uses a Pokemon database for correct names
 - **Typo correction**: Detects and corrects typos in file names
 - **Format agnostic**: Handles any file type, not just `.3mf`
 - **Pokeball support**: Separate category for Pokeball models
+- **Catch-all folder**: Unassignable files land in `_Unsorted/` instead of being deleted
 
 ### ✅ Status Tracking
 - **GUI application**: Clear overview of all Pokemon and variants
@@ -132,6 +135,20 @@ Designs/Pokeballs/
     └── Ultra Ball - SPLIT Profile - V1.1.3mf
 ```
 
+### Catch-all Folder (`_Unsorted`)
+```
+_Unsorted/
+├── 3mf/                          ← .3mf without a valid dex number, not a Pokeball
+│   └── mystery-model.3mf
+└── other/                        ← every file that is not a .3mf
+    └── {zip-name}/               ← kept separate per bulk download
+        └── a/b/c/                ← original path from the archive is preserved
+            ├── manual.pdf
+            └── part.stl
+```
+> The catch-all folder deliberately never appears in the GUI list. The GUI scans
+> `Designs/` only, and it accepts just folders starting with 4 digits, plus `Pokeballs`.
+
 ## File Handling
 
 ### Supported Name Formats
@@ -139,20 +156,25 @@ Designs/Pokeballs/
 - **URL encoded**: `0025+-+Pikachu+-+AMS+Profile.3mf`
 - **Variants**: `0006 - Mega Charizard X - AMS - V2.3mf`
 - **Pokeballs**: `Great Ball - AMS Profile.3mf`
+- **Folder structure inside an archive**: arbitrarily deep and freely named
 
 ### Classification
-Files are classified in two stages:
+Every file runs through four stages, in this order:
 
 1. **By file name**: dex number → database lookup → base name and variant
 2. **By parent folder**: if the file name carries no dex number, the script
    walks up towards `Source/` and uses the first folder name that resolves
+3. **Unresolved `.3mf`** → `_Unsorted/3mf/`
+4. **Unresolved other format** → `_Unsorted/other/{archive}/{original path}/`
 
-This is what makes mixed-format archives work. A `preview.png` or
+Stages 2 to 4 are what make mixed-format archives work. A `preview.png` or
 `supports.stl` has no dex number of its own, but inherits the classification of
-the folder it came in.
+the folder it came in. Anything that stage 2 cannot resolve either is caught by
+the `_Unsorted` net rather than being deleted or left lying around.
 
-Anything that neither stage can resolve **stays exactly where it is** and is
-listed at the end of the run. Nothing is guessed, nothing is moved blindly.
+Stage 2 only fires when a folder name genuinely resolves against the dex
+database. Archives with freely named folders simply fall through, so the stage
+can add matches but never misfile anything.
 
 ### Special Cases
 | Input | Handling | Output |
@@ -230,6 +252,12 @@ listed at the end of the run. Nothing is guessed, nothing is moved blindly.
 - Check the error message in the organize window
 - Archives listed in `PROTECTED_ROOT_ENTRIES` are skipped on purpose
 
+### A file is missing after organizing
+- Check `_Unsorted/3mf/`: `.3mf` files without a valid dex number end up there
+- Check `_Unsorted/other/{zip-name}/`: every non-3mf file, original path preserved
+- With identical file names, the last one processed wins (warning in the live output)
+- Nothing is ever deleted, except the archives themselves after a successful extraction
+
 ## Advanced Usage
 
 ### Adding new Pokemon
@@ -255,6 +283,13 @@ Put all archives into `Source/` and run:
 ./extract-and-organize.sh
 ```
 → Every archive is extracted and sorted.
+
+**Keeping archives (for repeated test runs):**
+```bash
+KEEP_ZIPS=1 ./extract-and-organize.sh
+```
+→ Archives are kept after processing. Accepted values are `0/1`, `false/true`,
+`no/yes`. An unknown value aborts the script **before** anything is extracted.
 
 ## Technical Details
 
@@ -289,9 +324,13 @@ Put all archives into `Source/` and run:
 - ✅ Format-agnostic handling instead of a hard `.3mf` filter
 - ✅ Parent folder fallback for files without a dex number
 - ✅ Archives extracted structure preserving instead of flattened
-- ✅ Unresolved files are kept and reported instead of skipped silently
+- ✅ Bulk archives with arbitrary folder depth and free keyword structures
+- ✅ Nested archives are unpacked recursively (max 5 levels)
+- ✅ `_Unsorted/` catch-all instead of dropping unassignable files
+- ✅ Case-insensitive extension detection (`.3MF`, `.STL`)
 - ✅ Sorting now also runs when no archive is present
 - ✅ Protected file list so the tooling never sorts itself
+- ✅ `KEEP_ZIPS=1` keeps archives after processing (for repeated test runs)
 - ✅ Line endings pinned via `.gitattributes`
 
 ### Version 1.0 (Initial Release)

@@ -193,6 +193,37 @@ classify_by_parent_folders() {
     return 1
 }
 
+route_to_unsorted() {
+    local file_path="$1"
+    local file_name
+    file_name=$(basename "$file_path")
+
+    local extension="${file_name##*.}"
+    local dest_dir
+
+    if [ "${extension,,}" = "3mf" ]; then
+        dest_dir="$UNSORTED_3MF"
+    else
+        dest_dir="$UNSORTED_OTHER"
+
+        case "$file_path" in
+            "$SOURCE_DIR"/*)
+                local relative_path="${file_path#$SOURCE_DIR/}"
+                local relative_dir
+                relative_dir=$(dirname "$relative_path")
+
+                if [ "$relative_dir" != "." ]; then
+                    dest_dir="${UNSORTED_OTHER}/${relative_dir}"
+                fi
+                ;;
+        esac
+    fi
+
+    mkdir -p "$dest_dir"
+    mv -f "$file_path" "$dest_dir/"
+    echo "$dest_dir"
+}
+
 input_files=()
 
 collect_input_files() {
@@ -232,13 +263,23 @@ echo ""
 mkdir -p "$DESIGNS_DIR"
 
 organized_count=0
-unresolved_files=()
+unsorted_3mf_count=0
+unsorted_other_count=0
+skipped_archives=()
 
 for file in "${input_files[@]}"; do
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Processing: $file"
 
     filename=$(basename "$file")
+    extension="${filename##*.}"
+
+    if [ "${extension,,}" = "zip" ]; then
+        echo "  ⏭️  Archive, left for extract-and-organize.sh"
+        skipped_archives+=("$file")
+        echo ""
+        continue
+    fi
 
     classify_name "$filename"
 
@@ -249,8 +290,15 @@ for file in "${input_files[@]}"; do
     fi
 
     if [ -z "$CLASSIFY_RESULT" ]; then
-        echo "  ⚠️  Could not classify, leaving file in place"
-        unresolved_files+=("$file")
+        unsorted_target=$(route_to_unsorted "$file")
+        echo "  ⚠️  Could not classify, moved to: $unsorted_target/"
+
+        if [ "${extension,,}" = "3mf" ]; then
+            unsorted_3mf_count=$((unsorted_3mf_count + 1))
+        else
+            unsorted_other_count=$((unsorted_other_count + 1))
+        fi
+
         echo ""
         continue
     fi
@@ -281,11 +329,19 @@ fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Organization complete! Organized $organized_count file(s)."
 
-if [ ${#unresolved_files[@]} -gt 0 ]; then
+if [ $unsorted_3mf_count -gt 0 ]; then
+    echo "⚠️  $unsorted_3mf_count unassignable .3mf file(s) moved to $UNSORTED_3MF/"
+fi
+
+if [ $unsorted_other_count -gt 0 ]; then
+    echo "⚠️  $unsorted_other_count other file(s) moved to $UNSORTED_OTHER/"
+fi
+
+if [ ${#skipped_archives[@]} -gt 0 ]; then
     echo ""
-    echo "⚠️  ${#unresolved_files[@]} file(s) could not be classified and stayed in place:"
-    for unresolved in "${unresolved_files[@]}"; do
-        echo "  • $unresolved"
+    echo "⏭️  ${#skipped_archives[@]} archive(s) skipped, run extract-and-organize.sh to unpack them:"
+    for skipped in "${skipped_archives[@]}"; do
+        echo "  • $skipped"
     done
 fi
 
