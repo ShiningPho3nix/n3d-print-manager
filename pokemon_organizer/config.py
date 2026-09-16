@@ -1,6 +1,4 @@
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from .paths import PROJECT_ROOT, executable_name
 
 SOURCE_DIR = "Source"
 DESIGNS_DIR = "Designs"
@@ -28,4 +26,4 @@ PROTECTED_ROOT_ENTRIES = frozenset(
 
 
 def is_protected_root_entry(name: str) -> bool:
-    return name in PROTECTED_ROOT_ENTRIES
+    return name in PROTECTED_ROOT_ENTRIES or name == executable_name()

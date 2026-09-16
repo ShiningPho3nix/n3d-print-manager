@@ -1,6 +1,5 @@
 import json
 from functools import lru_cache
-from pathlib import Path
 
 from .config import DEX_DATABASE, PROJECT_ROOT
 
@@ -10,8 +9,8 @@ class DexDatabaseError(RuntimeError):
 
 
 @lru_cache(maxsize=None)
-def load_dex(base_dir: Path | None = None) -> dict[str, str]:
-    database_path = (base_dir or PROJECT_ROOT) / DEX_DATABASE
+def load_dex() -> dict[str, str]:
+    database_path = PROJECT_ROOT / DEX_DATABASE
 
     if not database_path.is_file():
         raise DexDatabaseError(f"{DEX_DATABASE} not found in {database_path.parent}")
