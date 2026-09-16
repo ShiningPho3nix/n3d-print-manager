@@ -55,7 +55,8 @@ n3d designs/
 ├── pokemon-status-tracker.pyw
 ├── Start Pokemon Tracker.bat
 ├── pokemon-dex.json
-└── pokemon-status.json
+├── pokemon-status.json
+└── LICENSE
 ```
 
 `Source/` and `Designs/` are created automatically on the first run.
@@ -359,4 +360,18 @@ If something does not work:
 
 ## License
 
-This tool is for personal use. Pokemon is a registered trademark of Nintendo / Game Freak / Creatures Inc.
+This project is released under the MIT License. See [LICENSE](LICENSE) for the
+full text. In short: use it, modify it and redistribute it, commercially or
+not, as long as the copyright notice stays with the copies.
+
+## Disclaimer
+
+The MIT License covers the code in this repository only. It does not cover:
+
+- **Pokemon names, characters and imagery.** Pokemon is a registered trademark
+  of Nintendo, Creatures Inc. and GAME FREAK Inc. This project is not
+  affiliated with, endorsed by or sponsored by any of them. Pokemon names are
+  used solely to identify and sort files.
+- **The 3D model files themselves.** They belong to their respective creators
+  and are covered by whatever terms those creators set. No model files are
+  included in this repository.

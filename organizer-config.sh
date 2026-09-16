@@ -14,6 +14,7 @@ PROTECTED_ROOT_ENTRIES=(
     ".gitignore"
     "CLAUDE.md"
     "CONTEXT.md"
+    "LICENSE"
     "README.md"
     "Start Pokemon Tracker.bat"
     "extract-and-organize.sh"
