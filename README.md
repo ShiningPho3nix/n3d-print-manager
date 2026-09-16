@@ -6,15 +6,15 @@ button, done.
 
 ## Requirements
 
-- Windows 10/11
-- Python 3.11 or newer with tkinter (both ship with the standard installer)
+- Python 3.10 or newer with tkinter (ships with the standard installer)
 
-No further dependencies, no installation step, standard library only.
+No further dependencies, standard library only. Tested on Windows 10/11.
+Opening folders from the GUI currently requires Windows Explorer.
 
 ## Usage
 
 1. Drop ZIP archives or loose files into `Source/`
-2. Double click `Start Pokemon Tracker.bat`
+2. Double click `Start Pokemon Tracker.bat` or run `python pokemon-status-tracker.pyw`
 3. Click **Organize Files**: archives are extracted, files sorted, extracted
    archives deleted
 4. Tick finished Pokemon, the status is saved automatically
@@ -26,11 +26,13 @@ Command line alternative:
 python -m pokemon_organizer                  # extract archives, then sort
 python -m pokemon_organizer --organize-only  # sort only
 python -m pokemon_organizer --keep-zips      # keep archives after extraction
+python -m pokemon_organizer --base-dir PATH  # use another folder's Source/ and Designs/
 ```
 
-Run it from the project folder, that is where the package is imported from. It
-always sorts into that folder's `Designs/`, and exits with `1` when a file could
-not be moved or an archive could not be unpacked.
+Run it from the project folder so the package can be imported. Sorting targets
+the project folder's `Designs/` unless `--base-dir` says otherwise. The command
+exits with `1` when a file could not be moved or an archive could not be
+unpacked.
 
 ```bash
 python -m unittest discover -s tests -t .    # run the tests
@@ -81,8 +83,8 @@ Every file goes through four stages, first match wins:
 | `preview.png` inside `0001 - Bulbasaur/` | `Designs/0001 - Bulbasaur/` |
 | `mystery.3mf` | `_Unsorted/3mf/` |
 
-Supported variants: Mega, Alolan, Galarian, Hisuian, Paldean and custom
-keywords such as Christmas, Female, Male. URL encoded names
+Supported variants: Mega, Gmax, Gigantamax, Alolan, Galarian, Hisuian, Paldean
+and custom keywords such as Christmas, Female, Male. URL encoded names
 (`0025+-+Pikachu.3mf`) and nested archives (up to 5 levels) are handled.
 
 ## Customizing
