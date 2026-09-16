@@ -1,105 +1,105 @@
-# CONTEXT.md - Begriffserklärungen
+# CONTEXT.md - Glossary
 
-## Pokemon-spezifische Begriffe
+## Pokemon-Specific Terms
 
-### Dex-Nummer (Dex Number)
-- **Definition**: Eindeutige Nummer eines Pokemon im National Pokedex
-- **Format**: 4-stellige Zahl mit führenden Nullen (z.B. `0001`, `0025`, `0384`)
-- **Beispiele**:
+### Dex Number
+- **Definition**: Unique number of a Pokemon in the National Pokedex
+- **Format**: 4-digit number with leading zeros (e.g. `0001`, `0025`, `0384`)
+- **Examples**:
   - 0001 = Bulbasaur
   - 0025 = Pikachu
   - 0006 = Charizard
-- **Verwendung**: Primärer Identifikator für Sortierung und Organisation
+- **Usage**: Primary identifier for sorting and organization
 
-### Pokemon-Formen und Varianten
+### Pokemon Forms and Variants
 
-#### Base Form (Grundform)
-- **Definition**: Standard-Erscheinung eines Pokemon ohne besondere Varianten
-- **Beispiel**: Normales Pikachu, normales Charizard
-- **Speicherort**: Direkt im Hauptordner `{dex#} - {name}/`
+#### Base Form
+- **Definition**: Standard appearance of a Pokemon without any special variant
+- **Example**: Regular Pikachu, regular Charizard
+- **Location**: Directly inside the main folder `Designs/{dex#} - {name}/`
 
-#### Mega-Evolution
-- **Definition**: Temporäre Kampf-Transformation in Pokemon-Spielen
-- **Beispiele**:
-  - Mega Charizard X (Feuer/Drache)
-  - Mega Charizard Y (Feuer/Flug)
+#### Mega Evolution
+- **Definition**: Temporary battle transformation in the Pokemon games
+- **Examples**:
+  - Mega Charizard X (Fire/Dragon)
+  - Mega Charizard Y (Fire/Flying)
   - Mega Alakazam
   - Mega Lucario
-- **Ordnerstruktur**: `{dex#} - {base_name}/Mega {pokemon_name}/`
-- **Besonderheit**: Behalten die Dex-Nummer der Grundform
+- **Folder structure**: `Designs/{dex#} - {base_name}/Mega {pokemon_name}/`
+- **Note**: Keeps the dex number of the base form
 
-#### Regionale Formen (Regional Forms)
-- **Definition**: Lokale Varianten aus verschiedenen Regionen
-- **Typen**:
-  - **Alolan**: Aus der Alola-Region (Gen 7)
-  - **Galarian**: Aus der Galar-Region (Gen 8)
-  - **Hisuian**: Aus der Hisui-Region (Legends: Arceus)
-  - **Paldean**: Aus der Paldea-Region (Gen 9)
-- **Beispiel**: Alolan Ninetales (Eis/Fee statt Feuer)
-- **Ordnerstruktur**: `{dex#} - {base_name}/Alolan/`
+#### Regional Forms
+- **Definition**: Local variants from different regions
+- **Types**:
+  - **Alolan**: From the Alola region (Gen 7)
+  - **Galarian**: From the Galar region (Gen 8)
+  - **Hisuian**: From the Hisui region (Legends: Arceus)
+  - **Paldean**: From the Paldea region (Gen 9)
+- **Example**: Alolan Ninetales (Ice/Fairy instead of Fire)
+- **Folder structure**: `Designs/{dex#} - {base_name}/Alolan/`
 
-#### Custom Varianten
-- **Definition**: Nicht-offizielle Modifikationen oder Designs
-- **Beispiele**:
-  - Christmas Bulbasaur (Weihnachts-Theme)
-  - Female Pikachu (Geschlechtsspezifisch)
-  - NO SPOONS Alakazam (ohne Löffel)
-  - Open Pokeball (geöffneter Zustand)
-- **Ordnerstruktur**: `{dex#} - {name}/{variant_name}/`
+#### Custom Variants
+- **Definition**: Unofficial modifications or designs
+- **Examples**:
+  - Christmas Bulbasaur (Christmas theme)
+  - Female Pikachu (gender specific)
+  - NO SPOONS Alakazam (without spoons)
+  - Open Pokeball (opened state)
+- **Folder structure**: `Designs/{dex#} - {name}/{variant_name}/`
 
-## 3D-Druck-spezifische Begriffe
+## 3D Printing Terms
 
-### .3mf Datei
-- **Definition**: 3D Manufacturing Format - Dateiformat für 3D-Druckmodelle
-- **Standard**: Von 3MF Consortium entwickelt
-- **Vorteile**:
-  - Kompakt (ZIP-basiert)
-  - Enthält Metadaten, Farben, Texturen
-  - Besser als STL für moderne 3D-Drucker
-- **Verwendung**: Hauptformat für Pokemon 3D-Druckdateien
+### .3mf File
+- **Definition**: 3D Manufacturing Format - file format for 3D print models
+- **Standard**: Developed by the 3MF Consortium
+- **Advantages**:
+  - Compact (ZIP based)
+  - Contains metadata, colors, textures
+  - Better than STL for modern 3D printers
+- **Usage**: Main format for Pokemon 3D print files
 
-### Profile
+### Profiles
 
 #### AMS Profile
-- **Definition**: Automated Material System - Multi-Filament-Druck
-- **Hersteller**: Bambu Lab
-- **Verwendung**: Automatischer Farbwechsel während des Drucks
-- **Beispiel**: `0025 - Pikachu - AMS Profile - V3.3mf`
+- **Definition**: Automated Material System - multi-filament printing
+- **Manufacturer**: Bambu Lab
+- **Usage**: Automatic color changes during the print
+- **Example**: `0025 - Pikachu - AMS Profile - V3.3mf`
 
 #### SPLIT Profile
-- **Definition**: Modell in mehrere Teile aufgeteilt
-- **Zweck**:
-  - Druck ohne Support-Material
-  - Separate Farbgebung
-  - Größere Modelle auf kleinen Druckbetten
-- **Beispiel**: `0025 - Pikachu - SPLIT Profile - V3.3mf`
+- **Definition**: Model split into multiple parts
+- **Purpose**:
+  - Printing without support material
+  - Separate coloring
+  - Larger models on small print beds
+- **Example**: `0025 - Pikachu - SPLIT Profile - V3.3mf`
 
 #### MC Profile (Multi-Color)
-- **Definition**: Multi-Color-Druck mit manuellen Farbwechseln
-- **Verwendung**: Für Drucker ohne AMS
-- **Beispiel**: `0146 - Moltres - MC Profile - V1.1.3mf`
+- **Definition**: Multi-color printing with manual color changes
+- **Usage**: For printers without AMS
+- **Example**: `0146 - Moltres - MC Profile - V1.1.3mf`
 
-### Versionen
-- **Format**: `V{major}.{minor}` oder `V{major}`
-- **Beispiele**: `V1`, `V2.1`, `V3.3mf`
-- **Bedeutung**: Versionsnummer des 3D-Modells
+### Versions
+- **Format**: `V{major}.{minor}` or `V{major}`
+- **Examples**: `V1`, `V2.1`, `V3.3mf`
+- **Meaning**: Version number of the 3D model
 
 ## Pokeballs
 
 ### Definition
-- **Im Pokemon-Universum**: Geräte zum Fangen und Lagern von Pokemon
-- **Als 3D-Modelle**: Separate Kategorie von Druckdateien
+- **In the Pokemon universe**: Devices for catching and storing Pokemon
+- **As 3D models**: Separate category of print files
 
-### Typen
-- **Poke Ball**: Standard-Ball (rot/weiß)
-- **Great Ball**: Verbesserte Version (blau)
-- **Ultra Ball**: Noch stärker (gelb/schwarz)
-- **Master Ball**: Fängt jedes Pokemon garantiert (lila)
-- **Spezial-Bälle**: Timer Ball, Dusk Ball, Quick Ball, etc.
+### Types
+- **Poke Ball**: Standard ball (red/white)
+- **Great Ball**: Improved version (blue)
+- **Ultra Ball**: Even stronger (yellow/black)
+- **Master Ball**: Catches any Pokemon guaranteed (purple)
+- **Special balls**: Timer Ball, Dusk Ball, Quick Ball, etc.
 
-### Ordnerstruktur
+### Folder Structure
 ```
-Pokeballs/
+Designs/Pokeballs/
 ├── Great Ball/
 │   ├── Great Ball - AMS Profile.3mf
 │   └── Great Ball - SPLIT Profile.3mf
@@ -107,100 +107,154 @@ Pokeballs/
 └── Ultra Ball/
 ```
 
-## Technische Begriffe
+## Directory Roles
 
-### Normalisierung (Normalization)
-- **Definition**: Umwandlung von Dateinamen in einheitliches Format
-- **Schritte**:
-  - `+` → Leerzeichen
-  - `#` Prefix entfernen
-  - URL-Encoding auflösen
-- **Beispiel**: `#0025+-+Pikachu` → `0025 - Pikachu`
+### Source Directory
+- **Definition**: Drop zone for everything that has not been sorted yet
+- **Accepts**: ZIP archives and loose files of any format
+- **Scanning**: Recursive, including nested folders from extracted archives
+- **After sorting**: Successfully classified files are gone, empty folders are removed
+- **Configured in**: `organizer-config.sh` as `SOURCE_DIR`
 
-### Varianten-Erkennung (Variant Detection)
-- **Methode**: Pattern-Matching gegen bekannte Keywords
+### Designs Directory
+- **Definition**: Target root for all sorted design files
+- **Contains**: Pokemon folders and the `Pokeballs/` folder
+- **Never scanned as input**: The root scan is top level only, so it can never
+  descend into already sorted files
+- **Configured in**: `organizer-config.sh` as `DESIGNS_DIR`
+
+### Project Root as Input
+- **Definition**: Loose files dropped next to the scripts are picked up as well
+- **Scanning**: Top level only, never recursive
+- **Protection**: Project files are excluded via `PROTECTED_ROOT_ENTRIES`
+
+### Protected Root Entries
+- **Definition**: Explicit list of files in the project root that are never
+  treated as input
+- **Why it is needed**: Since the file filter is format agnostic, without this
+  list the tooling would try to sort its own scripts and documentation
+- **Contents**: Scripts, documentation, `pokemon-dex.json`, `pokemon-status.json`
+  and archives that are intentionally excluded
+- **Configured in**: `organizer-config.sh`
+
+## Technical Terms
+
+### Normalization
+- **Definition**: Converting file names into a uniform format
+- **Steps**:
+  - `+` → space
+  - Remove leading `#`
+  - Resolve URL encoding
+  - Strip the file extension
+- **Example**: `#0025+-+Pikachu` → `0025 - Pikachu`
+
+### Variant Detection
+- **Method**: Pattern matching against known keywords
 - **Keywords**: Mega, Alolan, Female, Christmas, etc.
-- **Fallback**: Wenn Name nicht Base-Name enthält
+- **Fallback**: Used when the name does not contain the base name
 
-### Base-Name-Extraktion
-- **Quelle**: pokemon-dex.json Datenbank
-- **Verwendung**: Korrekte Ordnerbenennung trotz Tippfehlern
-- **Beispiel**:
-  - Datei: `0282 - Gardivoir - AMS.3mf` (Tippfehler)
-  - Datenbank: 0282 = "Gardevoir"
-  - Ordner: `0282 - Gardevoir/`
+### Base Name Extraction
+- **Source**: `pokemon-dex.json` database
+- **Usage**: Correct folder naming despite typos
+- **Example**:
+  - File: `0282 - Gardivoir - AMS.3mf` (typo)
+  - Database: 0282 = "Gardevoir"
+  - Folder: `Designs/0282 - Gardevoir/`
+
+### Parent Folder Fallback
+- **Definition**: Second classification stage for files whose own name carries
+  no dex number
+- **Why it exists**: Bulk archives may contain arbitrary file formats, for
+  example `preview.png` or `supports.stl`, that only make sense in the context
+  of their folder
+- **Method**: Walk up from the file towards `Source/` and classify the first
+  parent folder name that resolves
+- **Example**:
+  - File: `Source/batch/0448 - Mega Lucario Z/preview.png`
+  - Folder resolves to: `0448 - Lucario` with variant `Mega Lucario Z`
+  - Target: `Designs/0448 - Lucario/Mega Lucario Z/`
+
+### Unresolved Files
+- **Definition**: Files that neither their own name nor any parent folder can
+  classify
+- **Behavior**: They stay exactly where they are, nothing is guessed
+- **Reporting**: Listed individually at the end of the organize run
 
 ### Filter Patterns
-- **Skip Patterns**: Zeilen die NICHT angezeigt werden
-  - `📋 Dex Number`
-  - `🎯 Base Pokemon`
-  - `📝 Extracted Name`
-  - `📦 Ball Type`
-- **Keep Patterns**: Zeilen die ANGEZEIGT werden
-  - `Processing:`
-  - `✅ Moved to:`
-  - `⚠️ Warning:`
-  - `🎱 Pokeball detected`
+- **Skip patterns**: Lines that are NOT shown in the GUI
+  - `✓ Base form`
+- **Keep patterns**: Lines that ARE shown
+  - `Processing:`, `Extracting`, `Extraction`, `Organizing`, `Found`
+  - `✅ Moved to:`, `❌`, `⚠️`, `🗑️`
+  - `🎱` Pokeball, `🎨` variant
+  - `↳` parent folder fallback, `•` unresolved file
 
-## Dateiformat-Konventionen
+## File Name Conventions
 
-### Standard-Format
+### Standard Format
 ```
 {dex#} - {pokemon_name} - {profile} - {version}.3mf
 ```
-**Beispiel**: `0025 - Pikachu - AMS Profile - V3.3mf`
+**Example**: `0025 - Pikachu - AMS Profile - V3.3mf`
 
-### URL-Encoded Format
+### URL Encoded Format
 ```
 {dex#}+-+{pokemon_name}+-+{profile}.3mf
 ```
-**Beispiel**: `0025+-+Pikachu+-+AMS+Profile.3mf`
+**Example**: `0025+-+Pikachu+-+AMS+Profile.3mf`
 
-### Varianten-Format
+### Variant Format
 ```
 {dex#} - {variant} {pokemon_name} - {profile}.3mf
 ```
-**Beispiel**: `0006 - Mega Charizard X - AMS - V2.3mf`
+**Example**: `0006 - Mega Charizard X - AMS - V2.3mf`
 
-### Pokeball-Format
+### Pokeball Format
 ```
 {ball_name} - {profile}.3mf
 ```
-**Beispiel**: `Great Ball - AMS Profile.3mf`
+**Example**: `Great Ball - AMS Profile.3mf`
 
-## Status-Tracking
+### Arbitrary Formats
+```
+any file name inside a classifiable folder
+```
+**Example**: `preview.png` inside `0001 - Bulbasaur/`
+
+## Status Tracking
 
 ### pokemon-status.json
-- **Struktur**: Key-Value Pairs
-- **Key**: Relativer Pfad (z.B. `"0025 - Pikachu"`, `"0025 - Pikachu/Female"`)
-- **Value**: Boolean (`true` = erledigt, `false` = offen)
-- **Auto-Save**: Bei jeder Checkbox-Änderung
+- **Structure**: Key-value pairs
+- **Key**: Path relative to `Designs/` (e.g. `"0025 - Pikachu"`,
+  `"0025 - Pikachu/Female"`, `"Pokeballs/Great Ball"`)
+- **Value**: Boolean (`true` = done, `false` = open)
+- **Auto save**: On every checkbox change
 
-### Fortschritts-Berechnung
+### Progress Calculation
 ```
-Fortschritt = (Erledigte Items / Gesamt Items) × 100%
-```
-
-## Ordner-Hierarchie
-
-### Level 1: Pokemon Hauptordner
-```
-{dex#} - {pokemon_name}/
+Progress = (Done items / Total items) × 100%
 ```
 
-### Level 2: Varianten-Unterordner (optional)
+## Folder Hierarchy
+
+### Level 1: Pokemon Main Folder
 ```
-{dex#} - {pokemon_name}/
+Designs/{dex#} - {pokemon_name}/
+```
+
+### Level 2: Variant Subfolder (optional)
+```
+Designs/{dex#} - {pokemon_name}/
 └── {variant_name}/
 ```
 
-### Sonderfall: Pokeballs
+### Special Case: Pokeballs
 ```
-Pokeballs/
+Designs/Pokeballs/
 └── {ball_type}/
 ```
 
-### GUI-Darstellung
-- Pokemon: Flache Liste (Level 1)
-- Varianten: Eingerückt mit `↳` (Level 2)
-- Pokeballs: Am Ende mit Separator, flach mit 🎱 Icon
+### GUI Representation
+- Pokemon: Flat list (level 1)
+- Variants: Indented with `↳` (level 2)
+- Pokeballs: At the end behind a separator, flat with a 🎱 icon

@@ -1,27 +1,52 @@
 # CLAUDE.md - Pokemon 3D Print Organizer
 
 ## Project Overview
-This project organizes Pokemon 3D print files (.3mf) into a structured folder hierarchy based on Pokemon Dex numbers and variants. It includes scripts for extraction, organization, and a GUI for tracking completion status.
+This project organizes Pokemon 3D print files into a structured folder hierarchy based on Pokemon Dex numbers and variants. It includes scripts for extraction, organization, and a GUI for tracking completion status.
+
+## Language Policy
+
+**Everything in this project is written in English and stays English.**
+
+This covers code, comments, identifiers, documentation, script output, commit
+messages and **GUI labels**.
+
+This rule intentionally overrides the global instruction to write user
+interface text in German. It applies to this project only.
 
 ## Project Structure
 
-### Main Scripts
-1. **extract-and-organize.sh**
-   - Extracts ZIP files containing .3mf files
-   - Calls organize-pokemon.sh
-   - Deletes ZIPs after successful extraction
+### Directories
+- **Source/** - drop zone for unsorted archives and files, scanned recursively
+- **Designs/** - target root for all sorted output, never scanned as input
 
-2. **organize-pokemon.sh**
+Both are created automatically and are excluded from version control.
+
+### Main Scripts
+1. **organizer-config.sh**
+   - Shared configuration sourced by both shell scripts
+   - Defines SOURCE_DIR, DESIGNS_DIR and PROTECTED_ROOT_ENTRIES
+   - PROTECTED_ROOT_ENTRIES is what stops the tooling from sorting its own
+     files, which matters because the file filter is format agnostic
+
+2. **extract-and-organize.sh**
+   - Extracts archives found in Source/ and in the project root
+   - Extracts into Source/{archive name}/ preserving the archive structure
+   - Deletes an archive only after it extracted successfully
+   - Always calls organize-pokemon.sh, even when no archive was found
+
+3. **organize-pokemon.sh**
    - Core organization logic
    - Uses pokemon-dex.json database for Pokemon names
-   - Creates folder structure: `{dex#} - {name}/[variant]/`
+   - Creates folder structure: `Designs/{dex#} - {name}/[variant]/`
    - Handles special cases: Pokeballs, Mega forms, regional variants, typos
+   - Classifies by file name first, then falls back to the parent folder name
+   - Leaves unresolvable files in place and reports them
 
-3. **pokemon-status-tracker.pyw**
+4. **pokemon-status-tracker.pyw**
    - GUI application for tracking completion status
-   - Shows Pokemon and variants with checkboxes
+   - Scans Designs/ and shows Pokemon and variants with checkboxes
    - Includes "Organize Files" button to run extract-and-organize.sh
-   - Saves status to pokemon-status.json
+   - Saves status to pokemon-status.json, keyed relative to Designs/
 
 ### Data Files
 - **pokemon-dex.json** - Complete Pokemon database (Gen 1-9, 1025 Pokemon)
@@ -31,14 +56,14 @@ This project organizes Pokemon 3D print files (.3mf) into a structured folder hi
 
 ### Folder Structure
 ```
-{dex#} - {pokemon_name}/
+Designs/{dex#} - {pokemon_name}/
 ├── base_files.3mf          ← Base form files directly in main folder
 ├── Mega {pokemon_name}/    ← Mega variants in subfolders
 ├── Alolan/                 ← Regional variants
 ├── Custom Variant/         ← Custom variants (Christmas, Female, etc.)
 └── ...
 
-Pokeballs/
+Designs/Pokeballs/
 ├── Great Ball/
 ├── Master Ball/
 └── ...
@@ -67,8 +92,10 @@ Pokeballs/
 
 ### Error Handling
 - Typos in filenames: Create correct folder based on dex number from database
-- Missing dex numbers: Check if it's a Pokeball, otherwise skip
+- Missing dex numbers: Check if it's a Pokeball, then try the parent folder name
+- Still unresolvable: Leave the file untouched and list it in the final report
 - Duplicate files: Overwrite existing files
+- Failed extraction: Keep the archive, remove the partial temporary folder
 
 ## Code Conventions
 
@@ -100,11 +127,14 @@ Pokeballs/
 
 ## Testing Scenarios
 
-1. **Normal Pokemon**: `0025 - Pikachu - AMS Profile.3mf` → `0025 - Pikachu/`
-2. **Mega Variant**: `0006 - Mega Charizard X - AMS.3mf` → `0006 - Charizard/Mega Charizard X/`
-3. **Custom Variant**: `0001 - Bulbasaur - Christmas - AMS.3mf` → `0001 - Bulbasaur/Christmas/`
-4. **Typo**: `0282 - Gardivoir - AMS.3mf` → `0282 - Gardevoir/` (no subfolder)
-5. **Pokeball**: `Great Ball - AMS.3mf` → `Pokeballs/Great Ball/`
+1. **Normal Pokemon**: `0025 - Pikachu - AMS Profile.3mf` → `Designs/0025 - Pikachu/`
+2. **Mega Variant**: `0006 - Mega Charizard X - AMS.3mf` → `Designs/0006 - Charizard/Mega Charizard X/`
+3. **Custom Variant**: `0001 - Bulbasaur - Christmas - AMS.3mf` → `Designs/0001 - Bulbasaur/Christmas/`
+4. **Typo**: `0282 - Gardivoir - AMS.3mf` → `Designs/0282 - Gardevoir/` (no subfolder)
+5. **Pokeball**: `Great Ball - AMS.3mf` → `Designs/Pokeballs/Great Ball/`
+6. **Parent folder fallback**: `Source/batch/0001 - Bulbasaur/preview.png` → `Designs/0001 - Bulbasaur/`
+7. **Unresolvable**: `Source/batch/notes.txt` → stays in place, reported at the end
+8. **Protected file**: `CLAUDE.md` in the project root → never treated as input
 
 ## Maintenance
 
@@ -113,13 +143,28 @@ Pokeballs/
 2. No code changes needed - scripts use database automatically
 
 ### Adding New Variant Types
-1. Add keyword to variant detection regex in organize-pokemon.sh
+1. Add the keyword to `form_variant_keywords` or `custom_variant_keywords` in
+   organize-pokemon.sh
 2. Consider if it needs special folder naming (like Mega forms)
+
+### Excluding a File From Sorting
+Add its name to `PROTECTED_ROOT_ENTRIES` in organizer-config.sh.
+
+## Known Limitations
+
+- Dex 0772 is named `Type: Null`. The colon is not a legal character in
+  Windows folder names, so creating that folder would fail. No sanitization is
+  in place yet.
+- Nested archives (a ZIP inside a ZIP) are not extracted recursively within a
+  single run.
 
 ## File Modifications
 
 When modifying scripts, ensure:
 - Bash scripts remain executable: `chmod +x *.sh`
+- Shell scripts keep LF line endings (pinned in `.gitattributes`; CRLF breaks bash)
 - GUI maintains live output functionality
 - Filter patterns stay in sync between scripts and GUI
+- Folder names stay in sync between organizer-config.sh and the DESIGNS_DIR
+  constant in pokemon-status-tracker.pyw
 - Database integrity (valid JSON, no duplicates)

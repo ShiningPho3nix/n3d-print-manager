@@ -1,82 +1,118 @@
 # Pokemon 3D Print Organizer
 
-Automatische Organisation und Tracking von Pokemon 3D-Druckdateien (.3mf) mit intelligenter Sortierung nach Pokedex-Nummern und Varianten.
+Automatic organization and tracking of Pokemon 3D print files, with sorting by Pokedex number and variant.
 
 ## Features
 
-### 🗂️ Automatische Organisation
-- **ZIP-Extraktion**: Automatisches Entpacken von heruntergeladenen ZIP-Archiven
-- **Intelligente Sortierung**: Dateien werden nach Dex-Nummer und Varianten organisiert
-- **Datenbank-gestützt**: Verwendet offizielle Pokemon-Datenbank für korrekte Namen
-- **Tippfehler-Korrektur**: Erkennt und korrigiert Tippfehler in Dateinamen
-- **Pokeball-Support**: Separate Kategorie für Pokeball-Modelle
+### 🗂️ Automatic Organization
+- **ZIP extraction**: Unpacks downloaded archives automatically
+- **Structured sorting**: Files are organized by dex number and variant
+- **Database backed**: Uses a Pokemon database for correct names
+- **Typo correction**: Detects and corrects typos in file names
+- **Format agnostic**: Handles any file type, not just `.3mf`
+- **Pokeball support**: Separate category for Pokeball models
 
-### ✅ Status-Tracking
-- **GUI-Anwendung**: Übersichtliche Darstellung aller Pokemon und Varianten
-- **Checkbox-System**: Markiere erledigte Drucke mit einem Klick
-- **Fortschritts-Anzeige**: Echtzeit-Statistik über Druckfortschritt
-- **Auto-Save**: Status wird automatisch gespeichert
-- **Explorer-Integration**: Direkter Zugriff auf Ordner aus der GUI
+### ✅ Status Tracking
+- **GUI application**: Clear overview of all Pokemon and variants
+- **Checkbox system**: Mark finished prints with one click
+- **Progress display**: Live statistics on print progress
+- **Auto save**: Status is stored automatically
+- **Explorer integration**: Open any folder straight from the GUI
 
-### 🔧 Varianten-Unterstützung
-- **Mega-Evolutionen**: Mega Charizard X/Y, Mega Alakazam, etc.
-- **Regionale Formen**: Alolan, Galarian, Hisuian, Paldean
-- **Custom-Varianten**: Christmas, Female/Male, NO SPOONS, etc.
-- **Profile-Typen**: AMS, SPLIT, MC - alle in einem Ordner
+### 🔧 Variant Support
+- **Mega evolutions**: Mega Charizard X/Y, Mega Alakazam, etc.
+- **Regional forms**: Alolan, Galarian, Hisuian, Paldean
+- **Custom variants**: Christmas, Female/Male, NO SPOONS, etc.
+- **Profile types**: AMS, SPLIT, MC - all in one folder
 
 ## Installation
 
-### Voraussetzungen
-- **Windows** (getestet auf Windows 10/11)
-- **Git Bash** (für Bash-Skripte)
-- **Python 3.x** (für GUI)
+### Requirements
+- **Windows** (tested on Windows 10/11)
+- **Git Bash** (for the shell scripts)
+- **Python 3.x** (for the GUI)
 
 ### Setup
-1. Alle Dateien in einen Ordner entpacken
-2. Git Bash installieren (falls noch nicht vorhanden)
-3. Python 3 installieren (falls noch nicht vorhanden)
-4. Fertig! Keine weiteren Dependencies nötig.
+1. Extract all files into one folder
+2. Install Git Bash (if not present yet)
+3. Install Python 3 (if not present yet)
+4. Done. No further dependencies needed.
 
-## Verwendung
+## Project Layout
 
-### Option 1: GUI (Empfohlen)
-1. Doppelklick auf `Start Pokemon Tracker.bat`
-2. GUI öffnet sich
-3. Klicke auf **"📂 Organize Files"** um:
-   - ZIPs zu extrahieren (falls vorhanden)
-   - Dateien zu organisieren
-   - ZIPs zu löschen
-4. Markiere erledigte Pokemon mit Checkboxen
-5. Nutze **"📁"** Buttons um Ordner im Explorer zu öffnen
+```
+n3d designs/
+├── Source/                     ← drop zone for new archives and files
+├── Designs/                    ← sorted output
+│   ├── 0025 - Pikachu/
+│   └── Pokeballs/
+├── organize-pokemon.sh
+├── extract-and-organize.sh
+├── organizer-config.sh
+├── pokemon-status-tracker.pyw
+├── Start Pokemon Tracker.bat
+├── pokemon-dex.json
+└── pokemon-status.json
+```
 
-### Option 2: Manuell (Kommandozeile)
+`Source/` and `Designs/` are created automatically on the first run.
+
+## Usage
+
+### Where to put new files
+
+Drop ZIP archives or loose files into **`Source/`**. Dropping them into the
+project root works as well, but `Source/` keeps the project tidy.
+
+- `Source/` is scanned recursively, including nested folders from archives
+- The project root is scanned **top level only**, so the scan can never
+  descend into already sorted files in `Designs/`
+- Project files in the root are protected by `PROTECTED_ROOT_ENTRIES` in
+  `organizer-config.sh` and are never treated as input
+
+After a run, every successfully classified file is gone from both locations.
+
+### Option 1: GUI (recommended)
+1. Double click `Start Pokemon Tracker.bat`
+2. The GUI opens
+3. Click **"📂 Organize Files"** to:
+   - Extract archives (if any are present)
+   - Sort the files
+   - Delete archives that were extracted successfully
+4. Tick finished Pokemon with the checkboxes
+5. Use the **"📁"** buttons to open a folder in Explorer
+
+### Option 2: Command line
 ```bash
-# Nur organisieren (ohne ZIP-Extraktion)
+# Sort only, no archive extraction
 ./organize-pokemon.sh
 
-# ZIP-Extraktion + Organisation
+# Extract archives, then sort
 ./extract-and-organize.sh
 ```
 
-## Ordnerstruktur
+Both scripts can be started from any working directory. They switch to their
+own location on startup.
+
+## Folder Structure
 
 ### Pokemon
 ```
-0025 - Pikachu/
-├── 0025 - Pikachu - AMS Profile - V3.3mf          ← Base-Form
-├── 0025 - Pikachu - SPLIT Profile - V3.3mf        ← Base-Form
-└── Female/                                         ← Variante
+Designs/0025 - Pikachu/
+├── 0025 - Pikachu - AMS Profile - V3.3mf          ← base form
+├── 0025 - Pikachu - SPLIT Profile - V3.3mf        ← base form
+└── Female/                                         ← variant
     ├── 0025 - Female Pikachu - AMS Profile.3mf
     └── 0025 - Female Pikachu - SPLIT Profile.3mf
 ```
 
-### Mega-Evolutionen
+### Mega Evolutions
 ```
-0006 - Charizard/
-├── 0006 - Charizard - AMS Profile.3mf             ← Base-Form
-├── Mega Charizard X/                              ← Mega-Variante
+Designs/0006 - Charizard/
+├── 0006 - Charizard - AMS Profile.3mf             ← base form
+├── Mega Charizard X/                              ← mega variant
 │   └── 0006 - Mega Charizard X - AMS - V2.3mf
-└── Mega Charizard Y/                              ← Mega-Variante
+└── Mega Charizard Y/                              ← mega variant
     ├── 0006 Mega Charizard Y - AMS - V1.3mf
     ├── 0006 Mega Charizard Y - MC - V1.1.3mf
     └── 0006 Mega Charizard Y - SPLIT - V1.3mf
@@ -84,7 +120,7 @@ Automatische Organisation und Tracking von Pokemon 3D-Druckdateien (.3mf) mit in
 
 ### Pokeballs
 ```
-Pokeballs/
+Designs/Pokeballs/
 ├── Great Ball/
 │   ├── Great Ball - AMS Profile.3mf
 │   └── Great Ball - SPLIT Profile.3mf
@@ -96,167 +132,190 @@ Pokeballs/
     └── Ultra Ball - SPLIT Profile - V1.1.3mf
 ```
 
-## Datei-Behandlung
+## File Handling
 
-### Unterstützte Formate
+### Supported Name Formats
 - **Standard**: `0025 - Pikachu - AMS Profile - V3.3mf`
-- **URL-Encoded**: `0025+-+Pikachu+-+AMS+Profile.3mf`
-- **Varianten**: `0006 - Mega Charizard X - AMS - V2.3mf`
+- **URL encoded**: `0025+-+Pikachu+-+AMS+Profile.3mf`
+- **Variants**: `0006 - Mega Charizard X - AMS - V2.3mf`
 - **Pokeballs**: `Great Ball - AMS Profile.3mf`
 
-### Automatische Erkennung
-- **Dex-Nummer**: Erste 4 Ziffern → Datenbank-Lookup
-- **Pokemon-Name**: Aus Datenbank (korrekte Schreibweise)
-- **Varianten**: Pattern-Matching gegen bekannte Keywords
-- **Tippfehler**: Werden erkannt und korrekt zugeordnet
+### Classification
+Files are classified in two stages:
 
-### Spezialfälle
-| Eingabe | Behandlung | Ausgabe |
-|---------|------------|---------|
-| `0282 - Gardivoir` (Tippfehler) | Als Base-Form | `0282 - Gardevoir/` |
-| `0006 - Mega Charizard X` | Als Mega-Variante | `0006 - Charizard/Mega Charizard X/` |
-| `Great Ball - AMS` | Als Pokeball | `Pokeballs/Great Ball/` |
-| `0001 - Bulbasaur - Christmas` | Als Custom-Variante | `0001 - Bulbasaur/Christmas/` |
+1. **By file name**: dex number → database lookup → base name and variant
+2. **By parent folder**: if the file name carries no dex number, the script
+   walks up towards `Source/` and uses the first folder name that resolves
 
-## GUI-Features im Detail
+This is what makes mixed-format archives work. A `preview.png` or
+`supports.stl` has no dex number of its own, but inherits the classification of
+the folder it came in.
 
-### Hauptfenster
-- **Pokemon-Liste**: Sortiert nach Dex-Nummer
-- **Checkboxen**: ☑ = Erledigt, ☐ = Offen
-- **Varianten**: Eingerückt unter Haupt-Pokemon
-- **Pokeballs**: Am Ende der Liste mit 🎱 Icon
-- **Fortschritt**: `Progress: 45/120 (37.5%)`
+Anything that neither stage can resolve **stays exactly where it is** and is
+listed at the end of the run. Nothing is guessed, nothing is moved blindly.
+
+### Special Cases
+| Input | Handling | Output |
+|-------|----------|--------|
+| `0282 - Gardivoir` (typo) | as base form | `Designs/0282 - Gardevoir/` |
+| `0006 - Mega Charizard X` | as mega variant | `Designs/0006 - Charizard/Mega Charizard X/` |
+| `Great Ball - AMS` | as Pokeball | `Designs/Pokeballs/Great Ball/` |
+| `0001 - Bulbasaur - Christmas` | as custom variant | `Designs/0001 - Bulbasaur/Christmas/` |
+| `preview.png` in `0001 - Bulbasaur/` | via parent folder | `Designs/0001 - Bulbasaur/` |
+| `notes.txt` (no context) | left in place | reported as unresolved |
+
+## GUI Features in Detail
+
+### Main Window
+- **Pokemon list**: Sorted by dex number
+- **Checkboxes**: ☑ = done, ☐ = open
+- **Variants**: Indented below their main Pokemon
+- **Pokeballs**: At the end of the list with a 🎱 icon
+- **Progress**: `Progress: 45/120 (37.5%)`
 
 ### Buttons
-| Button | Funktion |
+| Button | Function |
 |--------|----------|
-| **Refresh** | Liste neu laden |
-| **📂 Organize Files** | ZIP-Extraktion + Organisation |
-| **📁** (bei jedem Eintrag) | Ordner im Explorer öffnen |
+| **Refresh** | Reload the list |
+| **📂 Organize Files** | Extract archives, then sort |
+| **📁** (on every entry) | Open the folder in Explorer |
 
-### Organize-Fenster
-- **Live-Output**: Zeigt Fortschritt in Echtzeit
-- **Kompakte Ansicht**: Filtert unwichtige Details
-- **Kein Bash-Fenster**: Läuft im Hintergrund
-- **Close-Button**: Aktiviert nach Abschluss
+### Organize Window
+- **Live output**: Shows progress in real time
+- **Compact view**: Filters unimportant details
+- **No console window**: Runs in the background
+- **Close button**: Enabled once the run has finished
 
-## Profile-Typen
+## Profile Types
 
 ### AMS (Automated Material System)
-- **Verwendung**: Bambu Lab AMS
-- **Vorteil**: Automatischer Farbwechsel
-- **Ideal für**: Multi-Color-Drucke
+- **Used with**: Bambu Lab AMS
+- **Benefit**: Automatic color changes
+- **Best for**: Multi-color prints
 
 ### SPLIT
-- **Verwendung**: In Teile gesplittet
-- **Vorteil**: Kein Support nötig
-- **Ideal für**: Separate Farbgebung
+- **Used with**: Models split into parts
+- **Benefit**: No support material needed
+- **Best for**: Separate coloring
 
 ### MC (Multi-Color)
-- **Verwendung**: Manueller Farbwechsel
-- **Vorteil**: Ohne AMS druckbar
-- **Ideal für**: Drucker ohne Multi-Material-System
+- **Used with**: Manual color changes
+- **Benefit**: Printable without AMS
+- **Best for**: Printers without a multi-material system
 
 ## Troubleshooting
 
-### Problem: GUI startet nicht
-**Lösung**:
-- Python installiert? `python --version`
-- Doppelklick auf `Start Pokemon Tracker.bat`
+### The GUI does not start
+- Is Python installed? `python --version`
+- Start it via `Start Pokemon Tracker.bat`
 
-### Problem: Bash-Skript funktioniert nicht
-**Lösung**:
-- Git Bash installiert?
-- Skript ausführbar? `chmod +x *.sh`
-- Mit Git Bash ausführen, nicht CMD
+### A shell script does not run
+- Is Git Bash installed?
+- Is the script executable? `chmod +x *.sh`
+- Run it with Git Bash, not CMD
+- If bash reports `$'\r': command not found`, the script was checked out with
+  CRLF line endings. `.gitattributes` pins them to LF, so re-checkout the file.
 
-### Problem: Encoding-Fehler (kaputte Zeichen)
-**Lösung**:
-- Wird automatisch gehandhabt (UTF-8 + error='replace')
-- Sollte nicht mehr auftreten
+### The GUI is empty after an update
+- Sorted files live in `Designs/` now. If your Pokemon folders still sit next
+  to the scripts, move them into `Designs/`.
 
-### Problem: Core Dumps / Crashes
-**Lösung**:
-- Wurde gefixt (bash string matching statt grep)
-- Bei Problemen: Skript neu downloaden
+### Files end up in the wrong folder
+- Check the dex number: the first 4 digits must be valid
+- Is `pokemon-dex.json` up to date?
+- Typos are corrected automatically against the database
 
-### Problem: Dateien landen im falschen Ordner
-**Lösung**:
-- Dex-Nummer prüfen: Erste 4 Ziffern müssen gültig sein
-- pokemon-dex.json aktuell?
-- Bei Tippfehlern: Wird automatisch korrigiert
+### An archive was not extracted
+- The archive is kept on failure, nothing is deleted
+- Check the error message in the organize window
+- Archives listed in `PROTECTED_ROOT_ENTRIES` are skipped on purpose
 
-## Erweiterte Nutzung
+## Advanced Usage
 
-### Neue Pokemon hinzufügen (Zukunft)
-1. `pokemon-dex.json` öffnen
-2. Neuen Eintrag hinzufügen:
+### Adding new Pokemon
+1. Open `pokemon-dex.json`
+2. Add a new entry:
    ```json
    "1026": "NewPokemonName"
    ```
-3. Speichern - fertig!
+3. Save - done.
 
-### Custom-Varianten definieren
-Keywords in `organize-pokemon.sh` Zeile 199 anpassen:
+### Defining custom variants
+Adjust `custom_variant_keywords` in `organize-pokemon.sh`:
 ```bash
-elif echo "$pokemon_name" | grep -qiE "(Christmas|Halloween|YourKeyword)"; then
+custom_variant_keywords="(Christmas|Halloween|Female|Male|Shiny|Shadow|NO |Open)"
 ```
 
-### Batch-Verarbeitung
-Alle ZIPs in Ordner legen und:
+### Excluding a file from sorting
+Add its name to `PROTECTED_ROOT_ENTRIES` in `organizer-config.sh`.
+
+### Batch processing
+Put all archives into `Source/` and run:
 ```bash
 ./extract-and-organize.sh
 ```
-→ Alle ZIPs werden verarbeitet
+→ Every archive is extracted and sorted.
 
-## Technische Details
+## Technical Details
 
-### Dateien
-| Datei | Zweck |
-|-------|-------|
-| `extract-and-organize.sh` | ZIP-Extraktion + Organisation |
-| `organize-pokemon.sh` | Kern-Organisations-Logik |
-| `pokemon-status-tracker.pyw` | GUI-Anwendung |
-| `Start Pokemon Tracker.bat` | GUI-Starter |
-| `pokemon-dex.json` | Pokemon-Datenbank (1025 Einträge) |
-| `pokemon-status.json` | Status-Speicherung (auto-generiert) |
+### Files
+| File | Purpose |
+|------|---------|
+| `extract-and-organize.sh` | Archive extraction, then organization |
+| `organize-pokemon.sh` | Core organization logic |
+| `organizer-config.sh` | Shared folder names and protected file list |
+| `pokemon-status-tracker.pyw` | GUI application |
+| `Start Pokemon Tracker.bat` | GUI launcher |
+| `pokemon-dex.json` | Pokemon database (1025 entries) |
+| `pokemon-status.json` | Status storage (auto generated) |
 
-### Anforderungen
-- **Bash**: Git Bash (unter Windows)
-- **Python**: 3.x mit tkinter (Standard-Library)
-- **Tools**: unzip (in Git Bash enthalten)
+### Requirements
+- **Bash**: Git Bash (on Windows)
+- **Python**: 3.x with tkinter (standard library)
+- **Tools**: unzip (included in Git Bash)
 
 ### Performance
-- **Organisation**: ~1 Sekunde pro 10 Dateien
-- **ZIP-Extraktion**: Abhängig von Archiv-Größe
-- **GUI**: Sofortiges Laden bei <200 Pokemon
+- **Organization**: roughly 1 second per 10 files
+- **Archive extraction**: depends on archive size
+- **GUI**: loads instantly below ~200 Pokemon
 
 ## Changelog
 
+### Version 1.1
+- ✅ Sorted output moved into `Designs/`
+- ✅ `Source/` drop zone, with the project root still accepted as input
+- ✅ Format-agnostic handling instead of a hard `.3mf` filter
+- ✅ Parent folder fallback for files without a dex number
+- ✅ Archives extracted structure preserving instead of flattened
+- ✅ Unresolved files are kept and reported instead of skipped silently
+- ✅ Sorting now also runs when no archive is present
+- ✅ Protected file list so the tooling never sorts itself
+- ✅ Line endings pinned via `.gitattributes`
+
 ### Version 1.0 (Initial Release)
-- ✅ Automatische Organisation nach Dex-Nummer
-- ✅ Varianten-Unterstützung (Mega, Alolan, Custom)
-- ✅ Pokeball-Kategorie
-- ✅ ZIP-Extraktion
-- ✅ GUI mit Status-Tracking
-- ✅ Live-Output ohne Bash-Fenster
-- ✅ Tippfehler-Korrektur
-- ✅ UTF-8 Encoding
-- ✅ Core Dump Fixes
+- ✅ Automatic organization by dex number
+- ✅ Variant support (Mega, Alolan, custom)
+- ✅ Pokeball category
+- ✅ Archive extraction
+- ✅ GUI with status tracking
+- ✅ Live output without a console window
+- ✅ Typo correction
+- ✅ UTF-8 encoding
+- ✅ Core dump fixes
 
 ## Credits
 
-- **Pokemon-Datenbank**: Gen 1-9 (1025 Pokemon)
-- **3D-Modelle**: Von verschiedenen Creators (siehe Original-Dateien)
-- **Organisation**: Automatisch via Scripts
+- **Pokemon database**: Gen 1-9 (1025 Pokemon)
+- **3D models**: By various creators (see the original files)
+- **Organization**: Automatic via the scripts
 
 ## Support
 
-Bei Problemen oder Fragen:
-1. Siehe **Troubleshooting** Sektion
-2. `CONTEXT.md` für Begriffserklärungen
-3. `CLAUDE.md` für technische Details
+If something does not work:
+1. See the **Troubleshooting** section
+2. `CONTEXT.md` for terminology
+3. `CLAUDE.md` for technical details
 
-## Lizenz
+## License
 
-Dieses Tool ist für den persönlichen Gebrauch. Pokemon ist ein eingetragenes Warenzeichen von Nintendo/Game Freak/Creatures Inc.
+This tool is for personal use. Pokemon is a registered trademark of Nintendo / Game Freak / Creatures Inc.
