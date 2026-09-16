@@ -6,7 +6,6 @@ from pathlib import Path
 from .classifier import Classification, classify_name
 from .config import (
     DESIGNS_DIR,
-    PROJECT_ROOT,
     SOURCE_DIR,
     UNSORTED_3MF,
     UNSORTED_OTHER,
@@ -14,6 +13,7 @@ from .config import (
 )
 from .dex import load_dex
 from .events import Event, EventSink, null_sink
+from .paths import runtime_base_dir
 
 SEPARATOR = "━" * 52
 
@@ -102,8 +102,8 @@ def remove_empty_directories(root: Path) -> None:
 
 
 def organize(base_dir: Path | None = None, emit: EventSink = null_sink) -> OrganizeSummary:
-    base_dir = base_dir or PROJECT_ROOT
-    dex = load_dex(base_dir)
+    base_dir = base_dir or runtime_base_dir()
+    dex = load_dex()
     summary = OrganizeSummary()
 
     emit(Event("header", "=== Pokemon 3D Files Organizer (Database-driven) ==="))

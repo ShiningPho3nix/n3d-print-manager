@@ -12,3 +12,8 @@ pokemon-status.json
 _Unsorted/
 __pycache__/
 *.pyc
+
+build/
+*.build/
+*.dist/
+*.onefile-build/

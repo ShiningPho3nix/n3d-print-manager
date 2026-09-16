@@ -4,8 +4,9 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import MAX_ZIP_DEPTH, PROJECT_ROOT, SOURCE_DIR, is_protected_root_entry
+from .config import MAX_ZIP_DEPTH, SOURCE_DIR, is_protected_root_entry
 from .events import Event, EventSink, null_sink
+from .paths import runtime_base_dir
 
 SEPARATOR = "━" * 52
 
@@ -124,7 +125,7 @@ def extract_all(
     keep_zips: bool = False,
     emit: EventSink = null_sink,
 ) -> ExtractSummary:
-    base_dir = base_dir or PROJECT_ROOT
+    base_dir = base_dir or runtime_base_dir()
     source_root = base_dir / SOURCE_DIR
     source_root.mkdir(parents=True, exist_ok=True)
 

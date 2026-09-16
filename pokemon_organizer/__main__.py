@@ -3,11 +3,11 @@ import os
 import sys
 from pathlib import Path
 
-from .config import PROJECT_ROOT
 from .dex import DexDatabaseError
 from .events import console_sink
 from .extractor import parse_keep_zips
 from .organizer import organize
+from .paths import runtime_base_dir
 from .runner import run_all
 
 
@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--base-dir",
         type=Path,
-        default=PROJECT_ROOT,
+        default=runtime_base_dir(),
         help="project directory that holds Source/ and Designs/ (default: %(default)s)",
     )
     return parser

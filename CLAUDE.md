@@ -89,16 +89,33 @@ unpacked, so a run is scriptable. Everything is standard library only, there are
 no third party dependencies and no installation step.
 
 ### Main Modules
+0. **pokemon_organizer/paths.py**
+   - Lowest module, imports nothing from the package
+   - `PROJECT_ROOT` is the resource root: the folder that holds the code and
+     `pokemon-dex.json`. From source it is the repository, compiled it is the
+     folder Nuitka unpacks to
+   - `runtime_base_dir()` is the user data root: the folder that holds
+     `Source/`, `Designs/` and `pokemon-status.json`. From source it equals
+     `PROJECT_ROOT`, compiled it is `__compiled__.containing_dir`, the folder
+     next to the executable (or next to the `.app` on macOS)
+   - `is_compiled()` tests for Nuitka's `__compiled__` attribute. Nuitka does
+     not set `sys.frozen`, do not test for it
+   - `executable_name()` names the running executable so it is never sorted
+
 1. **pokemon_organizer/config.py**
    - Shared configuration: `SOURCE_DIR`, `DESIGNS_DIR`, `MAX_ZIP_DEPTH` and
      `PROTECTED_ROOT_ENTRIES`
-   - `PROJECT_ROOT` is derived from the package location, which replaces the
-     `cd "$script_dir"` the shell scripts used to do
+   - Re-exports `PROJECT_ROOT` from `paths.py`, every other module imports it
+     from here
    - `PROTECTED_ROOT_ENTRIES` is what stops the tooling from sorting its own
-     files, which matters because the file filter is format agnostic
+     files, which matters because the file filter is format agnostic.
+     `is_protected_root_entry()` additionally protects the running executable
 
 2. **pokemon_organizer/dex.py**
    - Loads and validates `pokemon-dex.json` once per run, cached
+   - Always reads from `PROJECT_ROOT`, never from `base_dir`. The compiled
+     executable embeds the database, `--base-dir` only moves `Source/` and
+     `Designs/`
    - Fails fast on a missing file, invalid JSON, a non-4-digit key or an empty
      name
 
@@ -135,10 +152,16 @@ no third party dependencies and no installation step.
    - `run_all()` runs extraction and organization, used by CLI and GUI alike
 
 8. **pokemon-status-tracker.pyw**
-   - GUI application for tracking completion status
+   - GUI application for tracking completion status, entry point of the
+     released executables
+   - Uses `runtime_base_dir()` for `Designs/` and the status file, never
+     `Path(__file__)`
    - Scans Designs/ and shows Pokemon and variants with checkboxes
    - Includes "Organize Files" button that calls `run_all()` in a thread
    - Saves status to pokemon-status.json, keyed relative to Designs/
+   - Opens folders with `os.startfile`, `open` or `xdg-open` depending on
+     `sys.platform`
+   - Shows `pokemon_organizer.__version__` in the window title
 
 ### Data Files
 - **pokemon-dex.json** - Complete Pokemon database (Gen 1-9, 1025 Pokemon)
@@ -306,6 +329,24 @@ Scenarios 1-5, 10 and 13 are covered by `tests/test_classifier.py`.
 ### Excluding a File From Sorting
 Add its name to `PROTECTED_ROOT_ENTRIES` in `pokemon_organizer/config.py`.
 
+### Releasing
+Releases are built by `.github/workflows/release.yml` with
+[Nuitka](https://nuitka.net/) on GitHub's runners, one job per platform:
+Windows x64 onefile, macOS arm64 app bundle, Linux x64 onefile. The dex
+database is embedded with `--include-data-files`.
+
+1. Bump `__version__` in `pokemon_organizer/__init__.py` through a pull request
+2. After the squash merge: `git tag vX.Y.Z && git push origin vX.Y.Z`
+3. The workflow refuses a tag that does not match `__version__`, runs the
+   tests, builds, and creates the release with the three files attached
+
+Pinned versions (`PYTHON_VERSION`, `NUITKA_VERSION`) live in the workflow's
+`env` block. Bump them deliberately, never to `latest`. The static part of the
+release notes is `.github/RELEASE_NOTES.md`, the change list is generated.
+
+The executables are not code signed: macOS shows a Gatekeeper dialog, Windows
+Defender may ask. Signing costs money and is out of scope.
+
 ## Known Limitations
 
 - Nested archives are expanded only up to `MAX_ZIP_DEPTH` (5) levels per run.
@@ -316,6 +357,10 @@ Add its name to `PROTECTED_ROOT_ENTRIES` in `pokemon_organizer/config.py`.
 - Windows reserved device names (CON, NUL, AUX, PRN, COM1-9, LPT1-9) are not
   special cased. No Pokemon name collides with them, and every main folder is
   prefixed with its dex number, so this is theoretical.
+- Released executables cannot be customized: `pokemon-dex.json` and the
+  patterns are compiled in. Customizing means running from source or building
+  your own executable. Intel Macs are not built, GitHub retires its Intel
+  runners in 2027.
 
 ## File Modifications
 

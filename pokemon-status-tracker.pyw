@@ -10,21 +10,23 @@ import json
 import os
 import queue
 import subprocess
+import sys
 import threading
-from pathlib import Path
 
+from pokemon_organizer import __version__
 from pokemon_organizer.config import DESIGNS_DIR, POKEBALLS_FOLDER
 from pokemon_organizer.events import Event
+from pokemon_organizer.paths import runtime_base_dir
 from pokemon_organizer.runner import run_all
 
 class PokemonStatusTracker:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pokemon Status Tracker")
+        self.root.title(f"Pokemon Status Tracker v{__version__}")
         self.root.geometry("800x600")
 
-        # Set working directory to script location
-        self.base_dir = Path(__file__).parent
+        # Set working directory to the folder next to the code or the executable
+        self.base_dir = runtime_base_dir()
         os.chdir(self.base_dir)
 
         self.designs_dir = self.base_dir / DESIGNS_DIR
@@ -177,7 +179,7 @@ class PokemonStatusTracker:
                 pokemon_frame,
                 text="📁",
                 width=3,
-                command=lambda p=pokemon_folder: self.open_in_explorer(p)
+                command=lambda p=pokemon_folder: self.open_folder(p)
             ).pack(side=tk.RIGHT)
 
             self.checkboxes[pokemon_path] = var
@@ -219,7 +221,7 @@ class PokemonStatusTracker:
                     variant_frame,
                     text="📁",
                     width=3,
-                    command=lambda p=variant_folder: self.open_in_explorer(p)
+                    command=lambda p=variant_folder: self.open_folder(p)
                 ).pack(side=tk.RIGHT)
 
                 self.checkboxes[variant_path] = var_variant
@@ -270,7 +272,7 @@ class PokemonStatusTracker:
                     ball_frame,
                     text="📁",
                     width=3,
-                    command=lambda p=ball_folder: self.open_in_explorer(p)
+                    command=lambda p=ball_folder: self.open_folder(p)
                 ).pack(side=tk.RIGHT)
 
                 self.checkboxes[ball_path] = var_ball
@@ -300,12 +302,18 @@ class PokemonStatusTracker:
         percentage = (done / total * 100) if total > 0 else 0
         self.stats_label.config(text=f"Progress: {done}/{total} ({percentage:.1f}%)")
 
-    def open_in_explorer(self, path):
-        """Open folder in Windows Explorer"""
+    def open_folder(self, path):
+        """Open folder in the file manager of the current platform"""
+        folder = str(path.resolve())
         try:
-            subprocess.Popen(f'explorer "{path.resolve()}"')
+            if sys.platform == "win32":
+                os.startfile(folder)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", folder])
+            else:
+                subprocess.Popen(["xdg-open", folder])
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to open Explorer:\n{e}")
+            messagebox.showerror("Error", f"Failed to open folder:\n{e}")
 
     def refresh(self):
         """Refresh the list"""
