@@ -23,6 +23,21 @@ strip_extension() {
     echo "$1" | sed -E 's/\.([A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*)$//'
 }
 
+trim_whitespace() {
+    local value="$1"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    echo "$value"
+}
+
+sanitize_path_component() {
+    local component="$1"
+    component=$(echo "$component" | tr '<>:"/\\|?*' ' ')
+    component=$(echo "$component" | tr -s ' ')
+    component=$(echo "$component" | sed -E 's/[[:space:].]+$//; s/^[[:space:]]+//')
+    echo "$component"
+}
+
 classify_name() {
     local raw_name="$1"
     CLASSIFY_RESULT=""
@@ -46,7 +61,8 @@ classify_name() {
         if echo "$normalized" | grep -qiE "ball"; then
             local ball_name
             ball_name=$(echo "$normalized" | sed -E 's/ - .*//')
-            ball_name=$(echo "$ball_name" | xargs)
+            ball_name=$(trim_whitespace "$ball_name")
+            ball_name=$(sanitize_path_component "$ball_name")
 
             if [ -n "$ball_name" ]; then
                 CLASSIFY_RESULT="${POKEBALLS_FOLDER}/${ball_name}"
@@ -84,7 +100,7 @@ classify_name() {
 
     local pokemon_name
     pokemon_name=$(IFS=" - "; echo "${pokemon_segments[*]}")
-    pokemon_name=$(echo "$pokemon_name" | xargs)
+    pokemon_name=$(trim_whitespace "$pokemon_name")
 
     local variant=""
     local variant_folder=""
@@ -142,7 +158,11 @@ classify_name() {
         fi
     fi
 
-    local main_folder="${dex_number} - ${base_name}"
+    local main_folder="${dex_number} - $(sanitize_path_component "$base_name")"
+
+    if [ -n "$variant_folder" ]; then
+        variant_folder=$(sanitize_path_component "$variant_folder")
+    fi
 
     if [ -n "$variant_folder" ]; then
         CLASSIFY_RESULT="${main_folder}/${variant_folder}"

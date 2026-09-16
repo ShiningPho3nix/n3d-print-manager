@@ -84,6 +84,18 @@ Designs/Pokeballs/
 ### Bash String Matching
 - Uses `[[ "$string" == *"$pattern"* ]]` instead of `grep -F` to avoid core dumps
 - Case-insensitive matching where needed
+- Never use `xargs` to trim whitespace. It treats quotes as special and fails
+  on names like `Farfetch'd`, which silently yields an empty result. Use
+  `trim_whitespace()` instead.
+
+### Path Sanitization
+- `sanitize_path_component()` is applied when building a folder name, never
+  before comparing names. Comparing sanitized names would break variant
+  detection, because the database name and the file name would no longer match.
+- Replaces `< > : " / \ | ? *` with a space, collapses repeated spaces and
+  strips trailing dots and spaces.
+- Affected database names: `Type: Null` (0772) becomes `Type Null`,
+  `Mime Jr.` (0439) becomes `Mime Jr`, which is what Windows would store anyway.
 
 ### GUI Live Output
 - Uses `subprocess.Popen()` instead of `subprocess.run()` for live output
@@ -152,11 +164,11 @@ Add its name to `PROTECTED_ROOT_ENTRIES` in organizer-config.sh.
 
 ## Known Limitations
 
-- Dex 0772 is named `Type: Null`. The colon is not a legal character in
-  Windows folder names, so creating that folder would fail. No sanitization is
-  in place yet.
 - Nested archives (a ZIP inside a ZIP) are not extracted recursively within a
   single run.
+- Windows reserved device names (CON, NUL, AUX, PRN, COM1-9, LPT1-9) are not
+  special cased. No Pokemon name collides with them, and every main folder is
+  prefixed with its dex number, so this is theoretical.
 
 ## File Modifications
 

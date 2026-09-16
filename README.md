@@ -282,6 +282,8 @@ Put all archives into `Source/` and run:
 ## Changelog
 
 ### Version 1.1
+- ✅ Folder names sanitized for Windows (`Type: Null`, `Mime Jr.`)
+- ✅ Whitespace trimming no longer breaks on `Farfetch'd` / `Sirfetch'd`
 - ✅ Sorted output moved into `Designs/`
 - ✅ `Source/` drop zone, with the project root still accepted as input
 - ✅ Format-agnostic handling instead of a hard `.3mf` filter

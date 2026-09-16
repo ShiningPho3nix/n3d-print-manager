@@ -174,6 +174,19 @@ Designs/Pokeballs/
   - Folder resolves to: `0448 - Lucario` with variant `Mega Lucario Z`
   - Target: `Designs/0448 - Lucario/Mega Lucario Z/`
 
+### Path Sanitization
+- **Definition**: Removing characters from a folder name that Windows does not
+  allow, before the folder is created
+- **Replaced**: `< > : " / \ | ? *` become a space, repeated spaces collapse,
+  trailing dots and spaces are stripped
+- **When it applies**: Only while building a path, never before comparing
+  names, since comparison relies on the original database spelling
+- **Affected database names**:
+  - `Type: Null` (0772) → folder `0772 - Type Null`
+  - `Mime Jr.` (0439) → folder `0439 - Mime Jr`
+- **Not affected**: Apostrophes are legal on Windows, so `Farfetch'd` (0083)
+  and `Sirfetch'd` (0865) keep their exact spelling
+
 ### Unresolved Files
 - **Definition**: Files that neither their own name nor any parent folder can
   classify
