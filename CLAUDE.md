@@ -19,6 +19,54 @@ them.
 This rule intentionally overrides the global instruction to write user
 interface text in German. It applies to this project only.
 
+## Git Workflow
+
+**Squash merge is the default. Branches are updated by rebasing, never by
+merging.**
+
+- Land every pull request as a single commit:
+  `gh pr merge <number> --squash --delete-branch`
+- `main` keeps one commit per change. The commit message of that squash is what
+  documents the change, so it carries the reasoning, not just the file list.
+- Bring a branch up to date with `git rebase main` or `git pull --rebase`.
+  A merge commit from `main` into a branch does not belong in the history.
+- Delete the branch right after the squash merge. Its commits no longer exist
+  in `main`, so rebasing a stale branch later would replay work that is already
+  merged.
+- Never rebase a branch someone else is working on, and never force push to
+  `main`.
+
+### Exception For Small Changes
+
+These go straight to `main`, no branch and no pull request:
+
+- Changes that only touch CLAUDE.md, README.md or CONTEXT.md
+- Typo and wording fixes
+- Configuration touch ups such as `.gitignore` or `.gitattributes`
+
+**The line is behaviour, not size.** A one line change inside
+`pokemon_organizer/` or `pokemon-status-tracker.pyw` still goes through a pull
+request, because it can change how files are sorted. A large documentation
+rewrite does not, because it cannot.
+
+When a change does both, it is a pull request and the documentation rides along
+in it.
+
+### Repository Setup
+
+`.git/config` is not versioned, so a fresh clone does not carry these settings.
+Run them once after cloning:
+
+```bash
+git config --local pull.rebase true   # pull rebases instead of merging
+git config --local fetch.prune true   # drop refs of branches deleted on GitHub
+git config --local merge.ff only      # refuse an accidental merge commit
+```
+
+The first one matters most: the Git for Windows installer writes
+`pull.rebase = false` into the system config, so without the local override a
+plain `git pull` does the opposite of what this section requires.
+
 ## Project Structure
 
 ### Directories
