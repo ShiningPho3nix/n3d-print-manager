@@ -1,8 +1,13 @@
 # Pokemon 3D Print Organizer
 
-Sorts Pokemon 3D print files into `Designs/{dex#} - {name}/[variant]/` and
-tracks which ones you have printed. Drop archives into `Source/`, click one
-button, done.
+Sorts the Pokemon character ball designs from
+[N3D Melbourne](https://www.n3dmelbourne.com/) into
+`Designs/{dex#} - {name}/[variant]/` and tracks which ones you have printed.
+Drop the downloaded archives into `Source/`, click one button, done.
+
+The classifier is built around N3D's file naming
+(`0025 - Pikachu - AMS Profile - V3.3mf`). Files from other creators are sorted
+only if they follow the same pattern, everything else lands in `_Unsorted/`.
 
 ## Requirements
 
@@ -117,6 +122,8 @@ The MIT License covers the code in this repository only. It does not cover:
   of Nintendo, Creatures Inc. and GAME FREAK Inc. This project is not
   affiliated with, endorsed by or sponsored by any of them. Pokemon names are
   used solely to identify and sort files.
-- **The 3D model files themselves.** They belong to their respective creators
-  and are covered by whatever terms those creators set. No model files are
+- **The 3D model files themselves.** The designs are created and sold by
+  [N3D Melbourne](https://www.n3dmelbourne.com/) and remain their property.
+  Downloading, printing and selling prints is governed by N3D's own licence
+  terms. This project is not affiliated with N3D, and no model files are
   included in this repository.
