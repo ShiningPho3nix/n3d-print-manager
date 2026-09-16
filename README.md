@@ -10,6 +10,9 @@ Automatische Organisation und Tracking von Pokemon 3D-Druckdateien (.3mf) mit in
 - **Datenbank-gestützt**: Verwendet offizielle Pokemon-Datenbank für korrekte Namen
 - **Tippfehler-Korrektur**: Erkennt und korrigiert Tippfehler in Dateinamen
 - **Pokeball-Support**: Separate Kategorie für Pokeball-Modelle
+- **Beliebige Ordnertiefe**: Dateien werden unabhängig von der Ordnerstruktur im Archiv gefunden
+- **Verschachtelte ZIPs**: ZIPs innerhalb von ZIPs werden automatisch mit entpackt (bis 5 Ebenen)
+- **Sammelordner**: Nicht zuordenbare Dateien landen in `_Unsorted/` statt gelöscht zu werden
 
 ### ✅ Status-Tracking
 - **GUI-Anwendung**: Übersichtliche Darstellung aller Pokemon und Varianten
@@ -96,6 +99,19 @@ Pokeballs/
     └── Ultra Ball - SPLIT Profile - V1.1.3mf
 ```
 
+### Sammelordner (`_Unsorted`)
+```
+_Unsorted/
+├── 3mf/                          ← .3mf ohne gültige Dex-Nummer und kein Pokeball
+│   └── mystery-model.3mf
+└── other/                        ← Alle Dateien, die kein .3mf sind
+    └── {zip-name}/               ← Pro Bulk-Download getrennt
+        └── a/b/c/                ← Originalpfad aus dem Archiv bleibt erhalten
+            ├── handbuch.pdf
+            └── teil.stl
+```
+> Der Sammelordner erscheint bewusst **nicht** in der GUI-Liste — dort werden nur Ordner angezeigt, die mit 4 Ziffern beginnen, plus `Pokeballs`.
+
 ## Datei-Behandlung
 
 ### Unterstützte Formate
@@ -103,6 +119,7 @@ Pokeballs/
 - **URL-Encoded**: `0025+-+Pikachu+-+AMS+Profile.3mf`
 - **Varianten**: `0006 - Mega Charizard X - AMS - V2.3mf`
 - **Pokeballs**: `Great Ball - AMS Profile.3mf`
+- **Ordnerstruktur im ZIP**: beliebig tief und frei benannt — ausgewertet wird ausschließlich der Dateiname
 
 ### Automatische Erkennung
 - **Dex-Nummer**: Erste 4 Ziffern → Datenbank-Lookup
@@ -117,6 +134,10 @@ Pokeballs/
 | `0006 - Mega Charizard X` | Als Mega-Variante | `0006 - Charizard/Mega Charizard X/` |
 | `Great Ball - AMS` | Als Pokeball | `Pokeballs/Great Ball/` |
 | `0001 - Bulbasaur - Christmas` | Als Custom-Variante | `0001 - Bulbasaur/Christmas/` |
+| `mystery-model.3mf` (keine Dex-Nr.) | Nicht zuordenbar | `_Unsorted/3mf/` |
+| `handbuch.pdf`, `teil.stl` | Kein .3mf-Format | `_Unsorted/other/{zip-name}/{pfad}/` |
+| `x/inner.zip` (ZIP in ZIP) | Wird entpackt, Inhalt normal verarbeitet | je nach Inhalt |
+| Zwei gleichnamige `.3mf` | Letzte gewinnt, Warnung im Live-Output | Zielordner |
 
 ## GUI-Features im Detail
 
@@ -186,6 +207,13 @@ Pokeballs/
 - pokemon-dex.json aktuell?
 - Bei Tippfehlern: Wird automatisch korrigiert
 
+### Problem: Datei fehlt nach dem Organisieren
+**Lösung**:
+- `_Unsorted/3mf/` prüfen: `.3mf` ohne gültige Dex-Nummer landen dort
+- `_Unsorted/other/{zip-name}/` prüfen: alle Nicht-3MF-Dateien, Originalpfad erhalten
+- Bei gleichnamigen Dateien überschreibt die zuletzt verarbeitete (Warnung im Live-Output)
+- Gelöscht wird nichts — nur die ZIP-Archive selbst nach erfolgreicher Extraktion
+
 ## Erweiterte Nutzung
 
 ### Neue Pokemon hinzufügen (Zukunft)
@@ -197,7 +225,7 @@ Pokeballs/
 3. Speichern - fertig!
 
 ### Custom-Varianten definieren
-Keywords in `organize-pokemon.sh` Zeile 199 anpassen:
+Keywords in `organize-pokemon.sh` Zeile 217 anpassen:
 ```bash
 elif echo "$pokemon_name" | grep -qiE "(Christmas|Halloween|YourKeyword)"; then
 ```
@@ -208,6 +236,12 @@ Alle ZIPs in Ordner legen und:
 ./extract-and-organize.sh
 ```
 → Alle ZIPs werden verarbeitet
+
+**ZIPs behalten (für Testläufe):**
+```bash
+KEEP_ZIPS=1 ./extract-and-organize.sh
+```
+→ Die Archive bleiben nach der Verarbeitung erhalten. Erlaubt sind `0/1`, `false/true`, `no/yes` — bei einem unbekannten Wert bricht das Skript ab, **bevor** entpackt wird.
 
 ## Technische Details
 
@@ -232,6 +266,15 @@ Alle ZIPs in Ordner legen und:
 - **GUI**: Sofortiges Laden bei <200 Pokemon
 
 ## Changelog
+
+### Version 1.1
+- ✅ Bulk-ZIPs mit beliebiger Ordnertiefe und freier Keyword-Struktur
+- ✅ Verschachtelte ZIPs werden rekursiv entpackt (max. 5 Ebenen)
+- ✅ Sammelordner `_Unsorted/` statt Löschen nicht zuordenbarer Dateien
+- ✅ Case-insensitive Endungs-Erkennung (`.3MF`, `.STL`)
+- ✅ Warnung bei gleichnamigen Dateien aus verschiedenen Unterordnern
+- ✅ GUI-Filter zeigt wieder an, welche ZIP gerade entpackt wird
+- ✅ `KEEP_ZIPS=1` behält die ZIP-Archive nach der Verarbeitung (Testläufe)
 
 ### Version 1.0 (Initial Release)
 - ✅ Automatische Organisation nach Dex-Nummer

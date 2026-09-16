@@ -7,6 +7,20 @@
 UNSORTED_DIR="_Unsorted"
 UNSORTED_OTHER="$UNSORTED_DIR/other"
 MAX_ZIP_DEPTH=5
+KEEP_ZIPS="${KEEP_ZIPS:-0}"
+
+case "${KEEP_ZIPS,,}" in
+    0|false|no)
+        keep_zips=false
+        ;;
+    1|true|yes)
+        keep_zips=true
+        ;;
+    *)
+        echo "❌ Invalid KEEP_ZIPS value: '$KEEP_ZIPS' (expected 0/1, false/true, no/yes)"
+        exit 1
+        ;;
+esac
 
 collected_3mf=0
 collected_other=0
@@ -176,22 +190,31 @@ if [ $extracted_count -gt 0 ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 fi
 
-# Delete processed ZIP files
+# Delete processed ZIP files (unless KEEP_ZIPS is set)
 echo ""
-echo "🗑️  Cleaning up ZIP files..."
-echo ""
-
 deleted_count=0
-for zip_file in "${zip_files[@]}"; do
-    if rm "$zip_file" 2>/dev/null; then
-        echo "  ✓ Deleted: $zip_file"
-        deleted_count=$((deleted_count + 1))
-    else
-        echo "  ❌ Failed to delete: $zip_file"
-    fi
-done
+
+if [ "$keep_zips" = true ]; then
+    echo "📌 KEEP_ZIPS is active, all ZIP files are kept"
+else
+    echo "🗑️  Cleaning up ZIP files..."
+    echo ""
+
+    for zip_file in "${zip_files[@]}"; do
+        if rm "$zip_file" 2>/dev/null; then
+            echo "  ✓ Deleted: $zip_file"
+            deleted_count=$((deleted_count + 1))
+        else
+            echo "  ❌ Failed to delete: $zip_file"
+        fi
+    done
+fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Complete! Extracted $extracted_count ZIP(s), deleted $deleted_count ZIP(s)"
+if [ "$keep_zips" = true ]; then
+    echo "✅ Complete! Extracted $extracted_count ZIP(s), kept ${#zip_files[@]} ZIP(s)"
+else
+    echo "✅ Complete! Extracted $extracted_count ZIP(s), deleted $deleted_count ZIP(s)"
+fi
 echo ""
