@@ -22,7 +22,6 @@ PROTECTED_ROOT_ENTRIES=(
     "pokemon-dex.json"
     "pokemon-status-tracker.pyw"
     "pokemon-status.json"
-    "n3d-designs-2026-09-13.zip"
 )
 
 is_protected_root_entry() {
