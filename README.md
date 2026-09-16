@@ -7,10 +7,9 @@ button, done.
 ## Requirements
 
 - Windows 10/11
-- Git Bash (runs the shell scripts, ships with `unzip`)
-- Python 3 with tkinter (standard library, for the GUI)
+- Python 3.11 or newer with tkinter (both ship with the standard installer)
 
-No further dependencies.
+No further dependencies, no installation step, standard library only.
 
 ## Usage
 
@@ -24,12 +23,18 @@ No further dependencies.
 Command line alternative:
 
 ```bash
-./extract-and-organize.sh              # extract archives, then sort
-./organize-pokemon.sh                  # sort only
-KEEP_ZIPS=1 ./extract-and-organize.sh  # keep archives after extraction
+python -m pokemon_organizer                  # extract archives, then sort
+python -m pokemon_organizer --organize-only  # sort only
+python -m pokemon_organizer --keep-zips      # keep archives after extraction
 ```
 
-Both scripts can be started from any working directory.
+Run it from the project folder, that is where the package is imported from. It
+always sorts into that folder's `Designs/`, and exits with `1` when a file could
+not be moved or an archive could not be unpacked.
+
+```bash
+python -m unittest discover -s tests -t .    # run the tests
+```
 
 ## Result
 
@@ -76,14 +81,14 @@ keywords such as Christmas, Female, Male. URL encoded names
 ## Customizing
 
 - **New Pokemon**: add `"1026": "Name"` to `pokemon-dex.json`
-- **New variant keyword**: extend `custom_variant_keywords` in `organize-pokemon.sh`
-- **Exclude a file from sorting**: add it to `PROTECTED_ROOT_ENTRIES` in `organizer-config.sh`
+- **New variant keyword**: extend `CUSTOM_VARIANT_PATTERN` in `pokemon_organizer/classifier.py`
+- **Exclude a file from sorting**: add it to `PROTECTED_ROOT_ENTRIES` in `pokemon_organizer/config.py`
 
 ## Troubleshooting
 
-- **`$'\r': command not found`**: the script has CRLF line endings. Re-checkout,
-  `.gitattributes` pins LF.
-- **GUI is empty**: sorted files must live in `Designs/`, not next to the scripts.
+- **`ModuleNotFoundError: pokemon_organizer`**: run the command from the project
+  folder, the package sits next to `pokemon-status-tracker.pyw`.
+- **GUI is empty**: sorted files must live in `Designs/`, not next to the code.
 - **A file is missing**: check `_Unsorted/`. With identical names the last file
   processed wins, the live output warns about it.
 - **Archive not extracted**: it is kept on failure, see the organize window for
