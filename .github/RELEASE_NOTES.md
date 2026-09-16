@@ -8,5 +8,3 @@
 
 Put the file into an empty folder and start it. `Source/`, `Designs/` and
 `pokemon-status.json` are created next to it. Intel Macs are not supported.
-
-## Changes
