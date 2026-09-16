@@ -41,12 +41,19 @@ python -m unittest discover -s tests -t .    # run the tests
 ```
 Designs/
 ├── 0006 - Charizard/
-│   ├── 0006 - Charizard - AMS Profile.3mf      ← base form
-│   └── Mega Charizard X/                       ← variant
+│   ├── 0006 - Charizard - AMS Profile.3mf              ← base form
+│   └── Mega Charizard X/                               ← variant
+│       └── 0006 - Mega Charizard X - AMS - V2.3mf
 ├── 0025 - Pikachu/
-│   └── Female/
+│   ├── 0025+-+Pikachu+-+AMS+Profile+-+V3.3mf           ← base form
+│   ├── 0025+-+Pikachu+-+SPLIT+Profile+-+V3.3mf
+│   └── Female/                                         ← variant
+│       ├── #0025+-+Female+Pikachu+-+AMS+Profile.3mf
+│       └── #0025+-+Female+Pikachu+-+SPLIT+Profile.3mf
 └── Pokeballs/
     └── Great Ball/
+        ├── Great+Ball+-+AMS+Profile.3mf
+        └── Great+Ball+-+SPLIT+Profile.3mf
 
 _Unsorted/
 ├── 3mf/                    ← .3mf without a valid dex number

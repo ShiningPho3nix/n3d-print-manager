@@ -107,6 +107,16 @@ Designs/Pokeballs/
 └── Ultra Ball/
 ```
 
+### Ball Name Detection
+- **Source**: The name segment that contains `ball`, which is not always the
+  first one. A file named `{profile} - {stream} - Abomination Ball.3mf` is named
+  after the ball, not after the profile.
+- **One word names**: Split before the final `Ball`, so `PokeBall` and
+  `Pokeball` both resolve to `Poke Ball`. Without this the same ball type would
+  sit in several folders that differ only in spelling.
+- **No dex number needed**: Pokeballs are the one category classified purely by
+  name, they never carry a dex number
+
 ## Directory Roles
 
 ### Source Directory
@@ -114,17 +124,17 @@ Designs/Pokeballs/
 - **Accepts**: ZIP archives and loose files of any format
 - **Scanning**: Recursive, including nested folders from extracted archives
 - **After sorting**: Successfully classified files are gone, empty folders are removed
-- **Configured in**: `organizer-config.sh` as `SOURCE_DIR`
+- **Configured in**: `pokemon_organizer/config.py` as `SOURCE_DIR`
 
 ### Designs Directory
 - **Definition**: Target root for all sorted design files
 - **Contains**: Pokemon folders and the `Pokeballs/` folder
 - **Never scanned as input**: The root scan is top level only, so it can never
   descend into already sorted files
-- **Configured in**: `organizer-config.sh` as `DESIGNS_DIR`
+- **Configured in**: `pokemon_organizer/config.py` as `DESIGNS_DIR`
 
 ### Project Root as Input
-- **Definition**: Loose files dropped next to the scripts are picked up as well
+- **Definition**: Loose files dropped next to the code are picked up as well
 - **Scanning**: Top level only, never recursive
 - **Protection**: Project files are excluded via `PROTECTED_ROOT_ENTRIES`
 
@@ -132,10 +142,12 @@ Designs/Pokeballs/
 - **Definition**: Explicit list of files in the project root that are never
   treated as input
 - **Why it is needed**: Since the file filter is format agnostic, without this
-  list the tooling would try to sort its own scripts and documentation
-- **Contents**: Scripts, documentation, `pokemon-dex.json`, `pokemon-status.json`
-  and archives that are intentionally excluded
-- **Configured in**: `organizer-config.sh`
+  list the tooling would try to sort its own code and documentation
+- **Contents**: The GUI entry point, documentation, `pokemon-dex.json`,
+  `pokemon-status.json` and archives that are intentionally excluded
+- **Not needed for**: The `pokemon_organizer/` and `tests/` folders. Only files
+  are collected from the project root, never directories.
+- **Configured in**: `pokemon_organizer/config.py`
 
 ## Technical Terms
 
@@ -190,17 +202,21 @@ Designs/Pokeballs/
 ### Unresolved Files
 - **Definition**: Files that neither their own name nor any parent folder can
   classify
-- **Behavior**: They stay exactly where they are, nothing is guessed
-- **Reporting**: Listed individually at the end of the organize run
+- **Behavior**: Nothing is guessed. `.3mf` files go to `_Unsorted/3mf/`, every
+  other format to `_Unsorted/other/` with its original archive path rebuilt.
+  Nothing is ever deleted.
+- **Reporting**: Counted per category in the summary of the organize run
 
-### Filter Patterns
-- **Skip patterns**: Lines that are NOT shown in the GUI
-  - `✓ Base form`
-- **Keep patterns**: Lines that ARE shown
-  - `Processing:`, `Extracting`, `Extraction`, `Organizing`, `Found`
-  - `✅ Moved to:`, `❌`, `⚠️`, `🗑️`
-  - `🎱` Pokeball, `🎨` variant
-  - `↳` parent folder fallback, `•` unresolved file
+### Events
+- **Definition**: The single output channel of a run, `Event(kind, message,
+  verbose)` from `pokemon_organizer/events.py`
+- **Why it exists**: Console and GUI are two sinks for the same events. Without
+  it the GUI would have to recognize output by text patterns, which had to be
+  kept in sync by hand.
+- **Kinds**: `header`, `separator`, `info`, `file`, `detail`, `moved`,
+  `unsorted`, `skipped`, `extracted`, `warning`, `error`, `summary`
+- **verbose**: Marks lines the GUI hides. Currently only base form notes, which
+  would otherwise repeat for almost every file.
 
 ## File Name Conventions
 
