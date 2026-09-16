@@ -36,21 +36,12 @@ merging.**
 - Never rebase a branch someone else is working on, and never force push to
   `main`.
 
-### Exception For Small Changes
+### No Exceptions
 
-These go straight to `main`, no branch and no pull request:
-
-- Changes that only touch CLAUDE.md, README.md or CONTEXT.md
-- Typo and wording fixes
-- Configuration touch ups such as `.gitignore` or `.gitattributes`
-
-**The line is behaviour, not size.** A one line change inside
-`pokemon_organizer/` or `pokemon-status-tracker.pyw` still goes through a pull
-request, because it can change how files are sorted. A large documentation
-rewrite does not, because it cannot.
-
-When a change does both, it is a pull request and the documentation rides along
-in it.
+Every change goes through a pull request, including documentation, typo fixes
+and configuration touch ups. A repository rule on GitHub rejects direct pushes
+to `main`, so a commit made on `main` by mistake has to be moved to a branch:
+`git branch <name> && git reset --hard origin/main && git checkout <name>`.
 
 ### Repository Setup
 
