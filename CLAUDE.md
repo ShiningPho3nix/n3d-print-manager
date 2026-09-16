@@ -8,7 +8,13 @@ This project organizes Pokemon 3D print files into a structured folder hierarchy
 **Everything in this project is written in English and stays English.**
 
 This covers code, comments, identifiers, documentation, script output, commit
-messages and **GUI labels**.
+messages, branch names, issue and pull request text, repository metadata and
+**GUI labels**. Anything that lands in the repository or on its GitHub page is
+English.
+
+Talking about the project is not covered. Conversation with the maintainer is
+held in German. The policy applies to artifacts, not to the discussion around
+them.
 
 This rule intentionally overrides the global instruction to write user
 interface text in German. It applies to this project only.
