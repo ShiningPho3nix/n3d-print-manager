@@ -151,11 +151,12 @@ def organize(base_dir: Path | None = None, emit: EventSink = null_sink) -> Organ
                     summary.unsorted_other += 1
                 continue
 
+            needs_review = classification.kind == "unmatched" or classification.misspelling is not None
             emit(
                 Event(
-                    "detail",
+                    "warning" if needs_review else "detail",
                     f"  {classification.note}",
-                    verbose=classification.kind == "base",
+                    verbose=classification.kind == "base" and not needs_review,
                 )
             )
 

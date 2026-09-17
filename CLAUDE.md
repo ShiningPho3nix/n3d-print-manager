@@ -112,9 +112,11 @@ no third party dependencies and no installation step.
 
 3. **pokemon_organizer/classifier.py**
    - Pure functions, no file system access, covered by the tests
-   - `classify_name()` returns a `Classification` with path components, a note
-     and a `kind` (`base`, `variant`, `custom_variant`, `typo`, `pokeball`), or
-     `None` when the name cannot be resolved
+   - `classify_name()` returns a `Classification` with path components, a note,
+     a `kind` (`base`, `variant`, `unmatched`, `pokeball`) and `misspelling`
+     (the misspelled text, or `None`), or `None` when the name cannot be
+     resolved. `kind` and `misspelling` are independent: a variant with a typo
+     is `variant` plus a `misspelling`
 
 4. **pokemon_organizer/extractor.py**
    - Extracts archives found in Source/ and in the project root
@@ -164,9 +166,9 @@ no third party dependencies and no installation step.
 ```
 Designs/{dex#} - {pokemon_name}/
 ├── base_files.3mf          ← Base form files directly in main folder
-├── Mega {pokemon_name}/    ← Mega variants in subfolders
-├── Alolan/                 ← Regional variants
-├── Custom Variant/         ← Custom variants (Christmas, Female, etc.)
+├── Mega {pokemon_name}/    ← Prefix variants keep the full name
+├── Ash-{pokemon_name}/     ← Hyphenated variants keep the full name
+├── Christmas/              ← Suffix variants use the suffix only
 └── ...
 
 Designs/Pokeballs/
@@ -183,9 +185,27 @@ outside that root. On top of that, `scan_and_populate()` only accepts folders
 whose first 4 characters are digits, and appends `Pokeballs` separately.
 
 ### Variant Detection Logic
-1. **Known Form Variants**: Mega, Alolan, Galarian, Hisuian, Paldean → Full name in subfolder
-2. **Custom Variants**: Christmas, Female, Male, NO SPOONS, etc. → Subfolder
-3. **Typos**: Names similar to database name but not exact → Treated as base form (no subfolder)
+There is no list of variant keywords. The dex number selects the database
+name, the name is searched **inside** the file name, and whatever is left over
+is the variant:
+
+1. The name is split into tokens at spaces and hyphens. Every contiguous token
+   span is compared with the database name using `difflib.SequenceMatcher` on a
+   comparison key (casefolded, accents removed, only letters and digits). The
+   span with the highest similarity wins, an exact match always beats a fuzzy
+   one.
+2. Similarity ≥ `TYPO_SIMILARITY_THRESHOLD` (0.8) counts as a match. Below
+   1.0 it is a **typo**, recorded in `misspelling` and corrected in the folder
+   name. `Flabebe`, `Nidoran` and `Farfetchd` match their accented database
+   names exactly through the comparison key.
+3. Text left of the match, or text glued on with a hyphen, keeps the full
+   corrected name: `Mega Charizard X`, `Female Pikachu`, `Ash-Greninja`.
+   A space separated suffix stands alone: `Christmas`, `NO SPOONS`, `Libre`.
+4. No span reaches the threshold (`0025 - Raichu`): the whole name becomes the
+   variant folder under the dex number's Pokemon, `kind` is `unmatched`.
+
+Typos and unmatched names are reported as `warning` events so they can be
+reviewed. A correct base form stays a verbose `detail`.
 
 ### File Naming Patterns
 - Format 1: `{dex#} - {name} - {profile} - {version}.3mf`
@@ -256,7 +276,11 @@ or 4, so the stage can add matches but never misfile anything.
   no text filtering and nothing to keep in sync between modules and GUI.
 
 ### Error Handling
-- Typos in filenames: Create correct folder based on dex number from database
+- Typos in filenames: Create correct folder based on dex number from database,
+  report the misspelling as a warning
+- Name does not resemble the database name: Keep it as a variant subfolder
+  under the dex number's Pokemon, report a warning. Nothing is silently merged
+  into the base form
 - Missing dex numbers: Check if it's a Pokeball, then try the parent folder name
 - Still unresolvable `.3mf`: Moved to `_Unsorted/3mf/`
 - Still unresolvable other formats: Moved to `_Unsorted/other/`, never deleted
@@ -291,8 +315,8 @@ or 4, so the stage can add matches but never misfile anything.
 
 1. **Normal Pokemon**: `0025 - Pikachu - AMS Profile.3mf` → `Designs/0025 - Pikachu/`
 2. **Mega Variant**: `0006 - Mega Charizard X - AMS.3mf` → `Designs/0006 - Charizard/Mega Charizard X/`
-3. **Custom Variant**: `0001 - Bulbasaur - Christmas - AMS.3mf` → `Designs/0001 - Bulbasaur/Christmas/`
-4. **Typo**: `0282 - Gardivoir - AMS.3mf` → `Designs/0282 - Gardevoir/` (no subfolder)
+3. **Suffix Variant**: `0001 - Bulbasaur - Christmas - AMS.3mf` → `Designs/0001 - Bulbasaur/Christmas/`
+4. **Typo**: `0282 - Gardivoir - AMS.3mf` → `Designs/0282 - Gardevoir/` (no subfolder, warning)
 5. **Pokeball**: `Great Ball - AMS.3mf` → `Designs/Pokeballs/Great Ball/`
 6. **Deep nesting**: `Source/batch/a/b/c/d/e/0025 - Pikachu - AMS.3mf` → `Designs/0025 - Pikachu/`
 7. **Nested ZIP**: `Source/batch/x/inner.zip` → unpacked, contents processed like any other file
@@ -302,8 +326,11 @@ or 4, so the stage can add matches but never misfile anything.
 11. **Protected file**: `CLAUDE.md` in the project root → never treated as input
 12. **Archive at organize time**: `Source/kept.zip` → skipped, reported, left in place
 13. **Dash in name**: `0474 - Mega Porygon-Z - AMS.3mf` → `Designs/0474 - Porygon-Z/Mega Porygon-Z/`
+14. **Hyphenated variant**: `0658 Ash-Greninja - SPLIT - V1.1.3mf` → `Designs/0658 - Greninja/Ash-Greninja/`
+15. **Typo inside a variant**: `0658 - Ash-Grenimja - AMS.3mf` → `Designs/0658 - Greninja/Ash-Greninja/` (warning)
+16. **Unmatched name**: `0025 - Raichu - AMS.3mf` → `Designs/0025 - Pikachu/Raichu/` (warning)
 
-Scenarios 1-5, 10 and 13 are covered by `tests/test_classifier.py`.
+Scenarios 1-5, 10 and 13-16 are covered by `tests/test_classifier.py`.
 
 ## Maintenance
 
@@ -311,11 +338,11 @@ Scenarios 1-5, 10 and 13 are covered by `tests/test_classifier.py`.
 1. Update `pokemon-dex.json` with new entries
 2. No code changes needed - the modules use the database automatically
 
-### Adding New Variant Types
-1. Add the keyword to `FORM_VARIANT_PATTERN` or `CUSTOM_VARIANT_PATTERN` in
-   classifier.py
-2. Consider if it needs special folder naming (like Mega forms)
-3. Add a case to `tests/test_classifier.py`
+### Variant Types
+Nothing to add: any text around the recognized Pokemon name is a variant. If a
+file is sorted wrongly, add it to `tests/test_classifier.py` first, then adjust
+the folder naming rules in `classify_variant()` or
+`TYPO_SIMILARITY_THRESHOLD` in classifier.py.
 
 ### Excluding a File From Sorting
 Add its name to `PROTECTED_ROOT_ENTRIES` in `pokemon_organizer/config.py`.
