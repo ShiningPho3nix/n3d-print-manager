@@ -73,7 +73,7 @@ Designs/
 ├── 0025 - Pikachu/
 │   ├── 0025+-+Pikachu+-+AMS+Profile+-+V3.3mf           ← base form
 │   ├── 0025+-+Pikachu+-+SPLIT+Profile+-+V3.3mf
-│   └── Female/                                         ← variant
+│   └── Female Pikachu/                                 ← variant
 │       ├── #0025+-+Female+Pikachu+-+AMS+Profile.3mf
 │       └── #0025+-+Female+Pikachu+-+SPLIT+Profile.3mf
 └── Pokeballs/
@@ -102,14 +102,21 @@ Every file goes through four stages, first match wins:
 |-------|--------|
 | `0282 - Gardivoir - AMS.3mf` (typo) | `Designs/0282 - Gardevoir/` |
 | `0006 - Mega Charizard X - AMS.3mf` | `Designs/0006 - Charizard/Mega Charizard X/` |
+| `0658 Ash-Greninja - SPLIT - V1.1.3mf` | `Designs/0658 - Greninja/Ash-Greninja/` |
+| `0658 - Ash-Grenimja - AMS.3mf` (typo) | `Designs/0658 - Greninja/Ash-Greninja/` |
 | `0001 - Bulbasaur - Christmas - AMS.3mf` | `Designs/0001 - Bulbasaur/Christmas/` |
+| `0025 - Raichu - AMS.3mf` (name does not match) | `Designs/0025 - Pikachu/Raichu/` |
 | `Great Ball - AMS.3mf` | `Designs/Pokeballs/Great Ball/` |
 | `preview.png` inside `0001 - Bulbasaur/` | `Designs/0001 - Bulbasaur/` |
 | `mystery.3mf` | `_Unsorted/3mf/` |
 
-Supported variants: Mega, Gmax, Gigantamax, Alolan, Galarian, Hisuian, Paldean
-and custom keywords such as Christmas, Female, Male. URL encoded names
-(`0025+-+Pikachu.3mf`) and nested archives (up to 5 levels) are handled.
+There is no list of variant keywords. The dex number picks the Pokemon, its
+name is searched inside the file name (typos and missing accents included),
+and whatever surrounds it is the variant. Text in front of the name or glued
+on with a hyphen keeps the full name (`Mega Charizard X`, `Ash-Greninja`), a
+separate suffix stands alone (`Christmas`). Typos are corrected in the folder
+name and reported as warnings. URL encoded names (`0025+-+Pikachu.3mf`) and
+nested archives (up to 5 levels) are handled.
 
 ## Customizing
 
@@ -119,7 +126,7 @@ the change in a clone of the repository, then run from source or build your
 own executable as described below.
 
 - **New Pokemon**: add `"1026": "Name"` to `pokemon-dex.json`
-- **New variant keyword**: extend `CUSTOM_VARIANT_PATTERN` in `pokemon_organizer/classifier.py`
+- **Stricter or looser typo detection**: change `TYPO_SIMILARITY_THRESHOLD` in `pokemon_organizer/classifier.py`
 - **Exclude a file from sorting**: add it to `PROTECTED_ROOT_ENTRIES` in `pokemon_organizer/config.py`
 
 ## Building The Executable Yourself

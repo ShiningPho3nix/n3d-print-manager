@@ -1,24 +1,23 @@
 import re
+import unicodedata
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Literal
 
 from .config import POKEBALLS_FOLDER
 
 BALL_KEYWORD = "ball"
 
-ClassificationKind = Literal["base", "variant", "custom_variant", "typo", "pokeball"]
+ClassificationKind = Literal["base", "variant", "unmatched", "pokeball"]
+
+TYPO_SIMILARITY_THRESHOLD = 0.7
 
 SEGMENT_SEPARATOR_PATTERN = re.compile(r"\s+-\s+")
 EXTENSION_PATTERN = re.compile(r"\.([A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*)$")
 DEX_NUMBER_PATTERN = re.compile(r"^[0-9]{4}")
 INVALID_PATH_CHARS_PATTERN = re.compile(r'[<>:"/\\|?*]')
 PROFILE_WORD_PATTERN = re.compile(r"^(AMS|SPLIT|MC|Profile|V[0-9]|w/)", re.IGNORECASE)
-FORM_VARIANT_PATTERN = re.compile(
-    r"^(Mega|Alolan|Galarian|Hisuian|Paldean|Gmax|Gigantamax)", re.IGNORECASE
-)
-CUSTOM_VARIANT_PATTERN = re.compile(
-    r"(Christmas|Halloween|Female|Male|Shiny|Shadow|NO |Open)", re.IGNORECASE
-)
+NAME_TOKEN_PATTERN = re.compile(r"[^\s-]+")
 
 
 @dataclass(frozen=True)
@@ -26,10 +25,26 @@ class Classification:
     parts: tuple[str, ...]
     note: str
     kind: ClassificationKind
+    misspelling: str | None = None
 
     @property
     def relative_path(self) -> str:
         return "/".join(self.parts)
+
+
+@dataclass(frozen=True)
+class BaseNameMatch:
+    start: int
+    end: int
+    similarity: float
+
+
+@dataclass(frozen=True)
+class VariantDecision:
+    folder: str
+    note: str
+    kind: ClassificationKind
+    misspelling: str | None = None
 
 
 def strip_extension(name: str) -> str:
@@ -59,8 +74,30 @@ def split_name_words(text: str) -> list[str]:
     return words
 
 
-def find_base_name(pokemon_name: str, base_name: str) -> re.Match[str] | None:
-    return re.search(rf"(?:^|\s){re.escape(base_name)}(?=\s|$)", pokemon_name)
+def comparison_key(text: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", text)
+    return "".join(char for char in decomposed if char.isalnum()).casefold()
+
+
+def name_similarity(candidate: str, base_name: str) -> float:
+    return SequenceMatcher(None, comparison_key(candidate), comparison_key(base_name)).ratio()
+
+
+def find_base_name(pokemon_name: str, base_name: str) -> BaseNameMatch | None:
+    tokens = list(NAME_TOKEN_PATTERN.finditer(pokemon_name))
+    best: BaseNameMatch | None = None
+
+    for first_index, first_token in enumerate(tokens):
+        for last_token in tokens[first_index:]:
+            candidate = pokemon_name[first_token.start() : last_token.end()]
+            similarity = name_similarity(candidate, base_name)
+            if best is None or similarity > best.similarity:
+                best = BaseNameMatch(first_token.start(), last_token.end(), similarity)
+
+    if best is None or best.similarity < TYPO_SIMILARITY_THRESHOLD:
+        return None
+
+    return best
 
 
 def normalize_ball_name(ball_name: str) -> str:
@@ -93,35 +130,42 @@ def classify_pokeball(normalized: str) -> Classification | None:
     )
 
 
-def classify_variant(pokemon_name: str, base_name: str) -> tuple[str, str, ClassificationKind]:
-    if pokemon_name == base_name:
-        return "", f"✓ Base form of {base_name}", "base"
-
+def classify_variant(pokemon_name: str, base_name: str) -> VariantDecision:
     match = find_base_name(pokemon_name, base_name)
 
-    if match:
-        prefix = pokemon_name[: match.start()].strip()
-        suffix = pokemon_name[match.end() :].strip()
+    if match is None:
+        return VariantDecision(
+            folder=pokemon_name,
+            note=f"⚠️  '{pokemon_name}' does not contain '{base_name}', using it as variant folder",
+            kind="unmatched",
+        )
 
-        if prefix and suffix:
-            variant_folder = f"{prefix} {base_name} {suffix}"
-        elif prefix:
-            variant_folder = f"{prefix} {base_name}" if FORM_VARIANT_PATTERN.match(prefix) else prefix
-        else:
-            variant_folder = suffix
+    prefix = pokemon_name[: match.start]
+    suffix = pokemon_name[match.end :]
+    matched_name = pokemon_name[match.start : match.end]
+    misspelling = matched_name if match.similarity < 1.0 else None
+    typo_note = f" (typo '{misspelling}' corrected)" if misspelling else ""
 
-        return variant_folder, f"🎨 Variant: {variant_folder}", "variant"
+    if not prefix.strip() and not suffix.strip():
+        if misspelling:
+            return VariantDecision(
+                folder="",
+                note=f"⚠️  '{misspelling}' looks like a typo of '{base_name}', using base form",
+                kind="base",
+                misspelling=misspelling,
+            )
+        return VariantDecision(folder="", note=f"✓ Base form of {base_name}", kind="base")
 
-    if FORM_VARIANT_PATTERN.match(pokemon_name):
-        return pokemon_name, f"🎨 Variant: {pokemon_name}", "variant"
+    if prefix.strip() or not suffix.startswith(" "):
+        variant_folder = f"{prefix}{base_name}{suffix}"
+    else:
+        variant_folder = suffix.strip()
 
-    if CUSTOM_VARIANT_PATTERN.search(pokemon_name):
-        return pokemon_name, f"🎨 Custom variant: {pokemon_name}", "custom_variant"
-
-    return (
-        "",
-        f"⚠️  Name '{pokemon_name}' looks like a typo of '{base_name}', using base form",
-        "typo",
+    return VariantDecision(
+        folder=variant_folder,
+        note=f"🎨 Variant: {variant_folder}{typo_note}",
+        kind="variant",
+        misspelling=misspelling,
     )
 
 
@@ -138,14 +182,16 @@ def classify_name(raw_name: str, dex: dict[str, str]) -> Classification | None:
     after_dex = re.sub(rf"^{dex_number}\s*-?\s*", "", normalized)
     pokemon_name = " ".join(split_name_words(after_dex))
 
-    variant_folder, note, kind = classify_variant(pokemon_name, base_name)
+    variant = classify_variant(pokemon_name, base_name)
 
     main_folder = f"{dex_number} - {sanitize_path_component(base_name)}"
     parts = (main_folder,)
 
-    if variant_folder:
-        sanitized_variant = sanitize_path_component(variant_folder)
+    if variant.folder:
+        sanitized_variant = sanitize_path_component(variant.folder)
         if sanitized_variant:
             parts = (main_folder, sanitized_variant)
 
-    return Classification(parts=parts, note=note, kind=kind)
+    return Classification(
+        parts=parts, note=variant.note, kind=variant.kind, misspelling=variant.misspelling
+    )
