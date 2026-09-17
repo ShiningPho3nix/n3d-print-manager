@@ -10,7 +10,7 @@ BALL_KEYWORD = "ball"
 
 ClassificationKind = Literal["base", "variant", "unmatched", "pokeball"]
 
-TYPO_SIMILARITY_THRESHOLD = 0.8
+TYPO_SIMILARITY_THRESHOLD = 0.7
 
 SEGMENT_SEPARATOR_PATTERN = re.compile(r"\s+-\s+")
 EXTENSION_PATTERN = re.compile(r"\.([A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*)$")

@@ -194,7 +194,7 @@ is the variant:
    comparison key (casefolded, accents removed, only letters and digits). The
    span with the highest similarity wins, an exact match always beats a fuzzy
    one.
-2. Similarity ≥ `TYPO_SIMILARITY_THRESHOLD` (0.8) counts as a match. Below
+2. Similarity ≥ `TYPO_SIMILARITY_THRESHOLD` (0.7) counts as a match. Below
    1.0 it is a **typo**, recorded in `misspelling` and corrected in the folder
    name. `Flabebe`, `Nidoran` and `Farfetchd` match their accented database
    names exactly through the comparison key.

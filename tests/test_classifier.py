@@ -52,6 +52,8 @@ CASES = [
 MISSPELLED = [
     ("0282 - Gardivoir - AMS.3mf", "0282 - Gardevoir", "base", "Gardivoir"),
     ("0122 - Mr Mine - AMS.3mf", "0122 - Mr. Mime", "base", "Mr Mine"),
+    # phonetic misspellings score lower than single letter swaps
+    ("0155 - Cinderquil - AMS Profile - V1.1.3mf", "0155 - Cyndaquil", "base", "Cinderquil"),
     # a typo inside a variant is corrected in the folder name
     ("0658 - Ash-Grenimja - AMS.3mf", "0658 - Greninja/Ash-Greninja", "variant", "Grenimja"),
     ("0006 - Mega Charizrd X - AMS.3mf", "0006 - Charizard/Mega Charizard X", "variant", "Charizrd"),
