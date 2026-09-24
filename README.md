@@ -82,7 +82,7 @@ Designs/
         └── Great+Ball+-+SPLIT+Profile.3mf
 
 _Unsorted/
-├── 3mf/                    ← .3mf without a valid dex number
+├── 3mf/                    ← .3mf that resolves neither by dex number nor by name
 └── other/{zip-name}/       ← any other format, archive path preserved
 ```
 
@@ -93,7 +93,8 @@ cannot be classified land in `_Unsorted/`, which the GUI does not show.
 
 Every file goes through four stages, first match wins:
 
-1. **File name**: dex number → database lookup → base name and variant
+1. **File name**: dex number → database lookup → base name and variant.
+   Without a dex number: Pokeball, then an exact, unambiguous Pokemon name
 2. **Parent folder**: first folder name towards `Source/` that resolves
 3. Unresolved `.3mf` → `_Unsorted/3mf/`
 4. Unresolved other format → `_Unsorted/other/{archive}/{original path}/`
@@ -107,6 +108,8 @@ Every file goes through four stages, first match wins:
 | `0001 - Bulbasaur - Christmas - AMS.3mf` | `Designs/0001 - Bulbasaur/Christmas/` |
 | `0025 - Raichu - AMS.3mf` (name does not match) | `Designs/0025 - Pikachu/Raichu/` |
 | `Great Ball - AMS.3mf` | `Designs/Pokeballs/Great Ball/` |
+| `Rose Bulbasaur - AMS Profile.3mf` (no dex number) | `Designs/0001 - Bulbasaur/Rose Bulbasaur/` |
+| `Pikachu and Eevee - AMS.3mf` (no dex number, two names) | `_Unsorted/3mf/` |
 | `preview.png` inside `0001 - Bulbasaur/` | `Designs/0001 - Bulbasaur/` |
 | `mystery.3mf` | `_Unsorted/3mf/` |
 

@@ -26,6 +26,7 @@ class Classification:
     note: str
     kind: ClassificationKind
     misspelling: str | None = None
+    resolved_by_name: bool = False
 
     @property
     def relative_path(self) -> str:
@@ -100,6 +101,41 @@ def find_base_name(pokemon_name: str, base_name: str) -> BaseNameMatch | None:
     return best
 
 
+def build_name_index(dex: dict[str, str]) -> dict[str, set[str]]:
+    name_index: dict[str, set[str]] = {}
+    for dex_number, name in dex.items():
+        name_index.setdefault(comparison_key(name), set()).add(dex_number)
+    return name_index
+
+
+def find_dex_number_by_name(pokemon_name: str, dex: dict[str, str]) -> str | None:
+    name_index = build_name_index(dex)
+    tokens = list(NAME_TOKEN_PATTERN.finditer(pokemon_name))
+    matches: list[tuple[int, int, set[str]]] = []
+
+    for first_index, first_token in enumerate(tokens):
+        for last_token in tokens[first_index:]:
+            candidate = pokemon_name[first_token.start() : last_token.end()]
+            dex_numbers = name_index.get(comparison_key(candidate))
+            if dex_numbers:
+                matches.append((first_token.start(), last_token.end(), dex_numbers))
+
+    outermost_matches = [
+        (start, end, dex_numbers)
+        for start, end, dex_numbers in matches
+        if not any(
+            other_start <= start and end <= other_end and (other_start, other_end) != (start, end)
+            for other_start, other_end, _ in matches
+        )
+    ]
+    found_dex_numbers = set().union(*(dex_numbers for _, _, dex_numbers in outermost_matches))
+
+    if len(found_dex_numbers) != 1:
+        return None
+
+    return found_dex_numbers.pop()
+
+
 def normalize_ball_name(ball_name: str) -> str:
     if " " in ball_name or not ball_name.lower().endswith(BALL_KEYWORD):
         return ball_name
@@ -169,19 +205,9 @@ def classify_variant(pokemon_name: str, base_name: str) -> VariantDecision:
     )
 
 
-def classify_name(raw_name: str, dex: dict[str, str]) -> Classification | None:
-    normalized = normalize_name(raw_name)
-
-    dex_match = DEX_NUMBER_PATTERN.match(normalized)
-    dex_number = dex_match.group() if dex_match else ""
-    base_name = dex.get(dex_number) if dex_number else None
-
-    if base_name is None:
-        return classify_pokeball(normalized)
-
-    after_dex = re.sub(rf"^{dex_number}\s*-?\s*", "", normalized)
-    pokemon_name = " ".join(split_name_words(after_dex))
-
+def classify_pokemon(
+    dex_number: str, base_name: str, pokemon_name: str, resolved_by_name: bool
+) -> Classification:
     variant = classify_variant(pokemon_name, base_name)
 
     main_folder = f"{dex_number} - {sanitize_path_component(base_name)}"
@@ -192,6 +218,40 @@ def classify_name(raw_name: str, dex: dict[str, str]) -> Classification | None:
         if sanitized_variant:
             parts = (main_folder, sanitized_variant)
 
+    note = variant.note
+    if resolved_by_name:
+        note = f"⚠️  No dex number, identified by name as {main_folder} ({variant.note})"
+
     return Classification(
-        parts=parts, note=variant.note, kind=variant.kind, misspelling=variant.misspelling
+        parts=parts,
+        note=note,
+        kind=variant.kind,
+        misspelling=variant.misspelling,
+        resolved_by_name=resolved_by_name,
     )
+
+
+def classify_name(raw_name: str, dex: dict[str, str]) -> Classification | None:
+    normalized = normalize_name(raw_name)
+
+    dex_match = DEX_NUMBER_PATTERN.match(normalized)
+
+    if dex_match:
+        dex_number = dex_match.group()
+        base_name = dex.get(dex_number)
+        if base_name is None:
+            return classify_pokeball(normalized)
+        after_dex = re.sub(rf"^{dex_number}\s*-?\s*", "", normalized)
+        pokemon_name = " ".join(split_name_words(after_dex))
+        return classify_pokemon(dex_number, base_name, pokemon_name, resolved_by_name=False)
+
+    pokeball = classify_pokeball(normalized)
+    if pokeball is not None:
+        return pokeball
+
+    pokemon_name = " ".join(split_name_words(normalized))
+    dex_number = find_dex_number_by_name(pokemon_name, dex)
+    if dex_number is None:
+        return None
+
+    return classify_pokemon(dex_number, dex[dex_number], pokemon_name, resolved_by_name=True)

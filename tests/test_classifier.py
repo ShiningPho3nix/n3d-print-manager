@@ -59,10 +59,21 @@ MISSPELLED = [
     ("0006 - Mega Charizrd X - AMS.3mf", "0006 - Charizard/Mega Charizard X", "variant", "Charizrd"),
 ]
 
+RESOLVED_BY_NAME = [
+    ("Rose+Bulbasaur+-+AMS+Profile.3mf", "0001 - Bulbasaur/Rose Bulbasaur", "variant"),
+    # Porygon inside Porygon-Z must not make the name ambiguous
+    ("Mega Porygon-Z - AMS.3mf", "0474 - Porygon-Z/Mega Porygon-Z", "variant"),
+]
+
 UNRESOLVED = [
     "mystery-model.3mf",
     "Cham3l30n's P2S Profile.3mf",
     "9999 - Nonexistent - AMS.3mf",
+    # without a dex number only an unambiguous exact name resolves
+    "Nidoran - AMS.3mf",
+    "Pikachu and Eevee - AMS.3mf",
+    "Bulbasur - AMS.3mf",
+    "9999 - Pikachu - AMS.3mf",
 ]
 
 
@@ -75,6 +86,16 @@ class ClassifyNameTest(unittest.TestCase):
                 self.assertEqual(expected_path, result.relative_path)
                 self.assertEqual(expected_kind, result.kind)
                 self.assertIsNone(result.misspelling)
+                self.assertFalse(result.resolved_by_name)
+
+    def test_names_without_dex_number(self):
+        for raw_name, expected_path, expected_kind in RESOLVED_BY_NAME:
+            with self.subTest(raw_name=raw_name):
+                result = classify_name(raw_name, DEX)
+                self.assertIsNotNone(result)
+                self.assertEqual(expected_path, result.relative_path)
+                self.assertEqual(expected_kind, result.kind)
+                self.assertTrue(result.resolved_by_name)
 
     def test_misspelled_names(self):
         for raw_name, expected_path, expected_kind, expected_misspelling in MISSPELLED:
