@@ -117,6 +117,8 @@ no third party dependencies and no installation step.
      (the misspelled text, or `None`), or `None` when the name cannot be
      resolved. `kind` and `misspelling` are independent: a variant with a typo
      is `variant` plus a `misspelling`
+   - `resolved_by_name` is `True` when the file had no dex number and the
+     Pokemon was found through its exact name, see Name Fallback
 
 4. **pokemon_organizer/extractor.py**
    - Extracts archives found in Source/ and in the project root
@@ -256,9 +258,24 @@ reviewed. A correct base form stays a verbose `detail`.
   the `_Unsorted/other/` path reconstruction both depend on.
 - Extensions are compared lowercase so `.3MF` and `.STL` are handled correctly
 
+### Name Fallback
+The dex number stays the primary way to a Pokemon. Only a name that starts
+without 4 digits is looked up by name, after the Pokeball check:
+
+- Only **exact** matches on the comparison key count, no typo tolerance.
+  Against all 1025 names a fuzzy search misfiles: `Rose` scores 0.727 against
+  `Roselia`.
+- A match lying inside a longer match is dropped, so `Porygon` does not
+  compete with `Porygon-Z`.
+- The remaining matches must name exactly one dex number. Two Pokemon in one
+  name, a typo, or `Nidoran` (0029 and 0032 share the key) resolve to nothing.
+- A 4-digit prefix that is not in the database (`9999 - Pikachu`) is not
+  looked up by name.
+- Every name match is reported as a `warning` event.
+
 ### Classification Chain
 Four stages, in this order:
-1. File name resolves → `Designs/...`
+1. File name resolves (dex number, Pokeball or exact name) → `Designs/...`
 2. Parent folder name resolves → `Designs/...`
 3. Unresolved `.3mf` → `_Unsorted/3mf/`
 4. Unresolved other format → `_Unsorted/other/{archive}/{original path}/`
@@ -281,7 +298,8 @@ or 4, so the stage can add matches but never misfile anything.
 - Name does not resemble the database name: Keep it as a variant subfolder
   under the dex number's Pokemon, report a warning. Nothing is silently merged
   into the base form
-- Missing dex numbers: Check if it's a Pokeball, then try the parent folder name
+- Missing dex numbers: Check if it's a Pokeball, then look for an exact,
+  unambiguous Pokemon name, then try the parent folder name
 - Still unresolvable `.3mf`: Moved to `_Unsorted/3mf/`
 - Still unresolvable other formats: Moved to `_Unsorted/other/`, never deleted
 - Duplicate files: Overwrite existing files
@@ -329,8 +347,10 @@ or 4, so the stage can add matches but never misfile anything.
 14. **Hyphenated variant**: `0658 Ash-Greninja - SPLIT - V1.1.3mf` → `Designs/0658 - Greninja/Ash-Greninja/`
 15. **Typo inside a variant**: `0658 - Ash-Grenimja - AMS.3mf` → `Designs/0658 - Greninja/Ash-Greninja/` (warning)
 16. **Unmatched name**: `0025 - Raichu - AMS.3mf` → `Designs/0025 - Pikachu/Raichu/` (warning)
+17. **No dex number**: `Rose+Bulbasaur+-+AMS+Profile.3mf` → `Designs/0001 - Bulbasaur/Rose Bulbasaur/` (warning)
+18. **No dex number, ambiguous**: `Pikachu and Eevee - AMS.3mf` → `_Unsorted/3mf/`
 
-Scenarios 1-5, 10 and 13-16 are covered by `tests/test_classifier.py`.
+Scenarios 1-5, 10 and 13-18 are covered by `tests/test_classifier.py`.
 
 ## Maintenance
 
