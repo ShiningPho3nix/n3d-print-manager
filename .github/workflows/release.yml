@@ -16,10 +16,10 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Check that the tag matches __version__
@@ -42,15 +42,15 @@ jobs:
             artifact: PokemonStatusTracker-windows-x64.exe
           - os: macos-latest
             artifact: PokemonStatusTracker-macos-arm64.zip
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             artifact: PokemonStatusTracker-linux-x64.tar.gz
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -114,7 +114,7 @@ jobs:
           mkdir -p dist
           tar -czf "dist/${{ matrix.artifact }}" -C build "${APP_NAME}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
@@ -122,10 +122,10 @@ jobs:
 
   release:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
