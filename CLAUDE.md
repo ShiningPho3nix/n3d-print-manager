@@ -379,7 +379,10 @@ database is embedded with `--include-data-files`.
    tests, builds, and creates the release with the three files attached
 
 Pinned versions (`PYTHON_VERSION`, `NUITKA_VERSION`) live in the workflow's
-`env` block. Bump them deliberately, never to `latest`. The static part of the
+`env` block. Bump them deliberately, never to `latest`. The Linux runner is
+pinned to `ubuntu-24.04` for the same reason: the Nuitka onefile links against
+the runner's glibc, so a newer image raises the minimum distribution version.
+The static part of the
 release notes is `.github/RELEASE_NOTES.md`, the change list is generated.
 
 The executables are not code signed: macOS shows a Gatekeeper dialog, Windows
