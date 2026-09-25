@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - windows-standalone-build
 
 permissions:
   contents: write
@@ -23,6 +25,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Check that the tag matches __version__
+        if: github.ref_type == 'tag'
         run: |
           version="$(python -c 'import pokemon_organizer; print(pokemon_organizer.__version__)')"
           if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
@@ -39,7 +42,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: PokemonStatusTracker-windows-x64.exe
+            artifact: PokemonStatusTracker-windows-x64.zip
           - os: macos-latest
             artifact: PokemonStatusTracker-macos-arm64.zip
           - os: ubuntu-24.04
@@ -61,11 +64,11 @@ jobs:
         if: runner.os == 'Linux'
         run: python -m pip install patchelf
 
-      - name: Build Windows executable
+      - name: Build Windows standalone folder
         if: runner.os == 'Windows'
         run: |
           python -m nuitka \
-            --mode=onefile \
+            --mode=standalone \
             --enable-plugin=tk-inter \
             --windows-console-mode=disable \
             --include-data-files=pokemon-dex.json=pokemon-dex.json \
@@ -76,7 +79,9 @@ jobs:
             --assume-yes-for-downloads \
             pokemon-status-tracker.pyw
           mkdir -p dist
-          mv "build/${APP_NAME}.exe" "dist/${{ matrix.artifact }}"
+          test -f "build/pokemon-status-tracker.dist/${APP_NAME}.exe"
+          mv "build/pokemon-status-tracker.dist" "build/${PRODUCT_NAME}"
+          (cd build && 7z a -tzip "../dist/${{ matrix.artifact }}" "${PRODUCT_NAME}")
 
       - name: Build macOS app bundle
         if: runner.os == 'macOS'
@@ -122,6 +127,7 @@ jobs:
 
   release:
     needs: build
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
