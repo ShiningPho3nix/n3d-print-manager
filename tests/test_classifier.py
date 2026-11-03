@@ -23,7 +23,7 @@ CASES = [
     ("0029 - Nidoran - AMS.3mf", "0029 - Nidoran♀", "base"),
     ("0083 - Farfetchd - AMS.3mf", "0083 - Farfetch'd", "base"),
     # a name that does not resemble the dex entry becomes its own variant folder
-    ("0025 - Raichu - AMS.3mf", "0025 - Pikachu/Raichu", "unmatched"),
+    ("0006 - Gigantamax - AMS.3mf", "0006 - Charizard/Gigantamax", "unmatched"),
     ("Great Ball - AMS.3mf", "Pokeballs/Great Ball", "pokeball"),
     # a ball name written as one word must not create a second folder
     ("PokeBall+-+AMS+Profile.3mf", "Pokeballs/Poke Ball", "pokeball"),
@@ -59,6 +59,16 @@ MISSPELLED = [
     ("0006 - Mega Charizrd X - AMS.3mf", "0006 - Charizard/Mega Charizard X", "variant", "Charizrd"),
 ]
 
+CONTRADICTING_DEX_NUMBER = [
+    ("0009 - Butterfree - AMS profile - V1.1.3mf", "0012 - Butterfree", "base", "0009"),
+    ("0025 - Raichu - AMS.3mf", "0026 - Raichu", "base", "0025"),
+    # a name that only looks like a typo of the dex entry can be another Pokemon
+    ("0016 - Pidgeot - AMS.3mf", "0018 - Pidgeot", "base", "0016"),
+    # the dex entry inside a longer Pokemon name does not make it a variant
+    ("0137 - Porygon-Z - AMS.3mf", "0474 - Porygon-Z", "base", "0137"),
+    ("0233 - Porygon-Z - AMS.3mf", "0474 - Porygon-Z", "base", "0233"),
+]
+
 RESOLVED_BY_NAME = [
     ("Rose+Bulbasaur+-+AMS+Profile.3mf", "0001 - Bulbasaur/Rose Bulbasaur", "variant"),
     # Porygon inside Porygon-Z must not make the name ambiguous
@@ -87,6 +97,17 @@ class ClassifyNameTest(unittest.TestCase):
                 self.assertEqual(expected_kind, result.kind)
                 self.assertIsNone(result.misspelling)
                 self.assertFalse(result.resolved_by_name)
+                self.assertIsNone(result.overruled_dex_number)
+
+    def test_names_contradicting_the_dex_number(self):
+        for raw_name, expected_path, expected_kind, expected_overruled in CONTRADICTING_DEX_NUMBER:
+            with self.subTest(raw_name=raw_name):
+                result = classify_name(raw_name, DEX)
+                self.assertIsNotNone(result)
+                self.assertEqual(expected_path, result.relative_path)
+                self.assertEqual(expected_kind, result.kind)
+                self.assertEqual(expected_overruled, result.overruled_dex_number)
+                self.assertIsNone(result.misspelling)
 
     def test_names_without_dex_number(self):
         for raw_name, expected_path, expected_kind in RESOLVED_BY_NAME:
@@ -121,4 +142,4 @@ class SanitizePathComponentTest(unittest.TestCase):
     def test_removes_invalid_characters(self):
         self.assertEqual("Type Null", sanitize_path_component("Type: Null"))
         self.assertEqual("Mime Jr", sanitize_path_component("Mime Jr."))
-        self.assertEqual("a b", sanitize_path_component('  a <>:"/\|?* b . '))
+        self.assertEqual("a b", sanitize_path_component(r'  a <>:"/\|?* b . '))

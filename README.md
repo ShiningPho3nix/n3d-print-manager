@@ -94,6 +94,7 @@ cannot be classified land in `_Unsorted/`, which the GUI does not show.
 Every file goes through four stages, first match wins:
 
 1. **File name**: dex number → database lookup → base name and variant.
+   A name that exactly names another Pokemon wins over a wrong dex number.
    Without a dex number: Pokeball, then an exact, unambiguous Pokemon name
 2. **Parent folder**: first folder name towards `Source/` that resolves
 3. Unresolved `.3mf` → `_Unsorted/3mf/`
@@ -106,7 +107,8 @@ Every file goes through four stages, first match wins:
 | `0658 Ash-Greninja - SPLIT - V1.1.3mf` | `Designs/0658 - Greninja/Ash-Greninja/` |
 | `0658 - Ash-Grenimja - AMS.3mf` (typo) | `Designs/0658 - Greninja/Ash-Greninja/` |
 | `0001 - Bulbasaur - Christmas - AMS.3mf` | `Designs/0001 - Bulbasaur/Christmas/` |
-| `0025 - Raichu - AMS.3mf` (name does not match) | `Designs/0025 - Pikachu/Raichu/` |
+| `0006 - Gigantamax - AMS.3mf` (name does not match) | `Designs/0006 - Charizard/Gigantamax/` |
+| `0009 - Butterfree - AMS.3mf` (wrong dex number) | `Designs/0012 - Butterfree/` |
 | `Great Ball - AMS.3mf` | `Designs/Pokeballs/Great Ball/` |
 | `Rose Bulbasaur - AMS Profile.3mf` (no dex number) | `Designs/0001 - Bulbasaur/Rose Bulbasaur/` |
 | `Pikachu and Eevee - AMS.3mf` (no dex number, two names) | `_Unsorted/3mf/` |

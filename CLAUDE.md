@@ -119,6 +119,8 @@ no third party dependencies and no installation step.
      is `variant` plus a `misspelling`
    - `resolved_by_name` is `True` when the file had no dex number and the
      Pokemon was found through its exact name, see Name Fallback
+   - `overruled_dex_number` holds the file's dex number when its name exactly
+     names another Pokemon and wins, see Contradicting Dex Number
 
 4. **pokemon_organizer/extractor.py**
    - Extracts archives found in Source/ and in the project root
@@ -203,11 +205,14 @@ is the variant:
 3. Text left of the match, or text glued on with a hyphen, keeps the full
    corrected name: `Mega Charizard X`, `Female Pikachu`, `Ash-Greninja`.
    A space separated suffix stands alone: `Christmas`, `NO SPOONS`, `Libre`.
-4. No span reaches the threshold (`0025 - Raichu`): the whole name becomes the
-   variant folder under the dex number's Pokemon, `kind` is `unmatched`.
+4. No span reaches the threshold (`0006 - Gigantamax`): the whole name becomes
+   the variant folder under the dex number's Pokemon, `kind` is `unmatched`.
+5. Anything but an exact base form is checked against the whole database. A
+   name that exactly names another Pokemon wins over the dex number, see
+   Contradicting Dex Number.
 
-Typos and unmatched names are reported as `warning` events so they can be
-reviewed. A correct base form stays a verbose `detail`.
+Typos, unmatched names and overruled dex numbers are reported as `warning`
+events so they can be reviewed. A correct base form stays a verbose `detail`.
 
 ### File Naming Patterns
 - Format 1: `{dex#} - {name} - {profile} - {version}.3mf`
@@ -259,8 +264,10 @@ reviewed. A correct base form stays a verbose `detail`.
 - Extensions are compared lowercase so `.3MF` and `.STL` are handled correctly
 
 ### Name Fallback
-The dex number stays the primary way to a Pokemon. Only a name that starts
-without 4 digits is looked up by name, after the Pokeball check:
+The dex number stays the primary way to a Pokemon. A name that starts without
+4 digits is looked up by name, after the Pokeball check. The same lookup checks
+a name that has a dex number but no exact base form, see Contradicting Dex
+Number:
 
 - Only **exact** matches on the comparison key count, no typo tolerance.
   Against all 1025 names a fuzzy search misfiles: `Rose` scores 0.727 against
@@ -272,6 +279,25 @@ without 4 digits is looked up by name, after the Pokeball check:
 - A 4-digit prefix that is not in the database (`9999 - Pikachu`) is not
   looked up by name.
 - Every name match is reported as a `warning` event.
+
+### Contradicting Dex Number
+Designers misnumber files: `0012-butterfree-all-profiles.zip` ships
+`0009 - Butterfree - AMS profile - V1.1.3mf`. A dex number therefore only wins
+as long as the name does not clearly say otherwise:
+
+- An exact base form (`0025 - Pikachu`) is never questioned.
+- Every other result (variant, typo, unmatched) looks up the **whole** name
+  with the Name Fallback rules. Looking up only the misspelled text is wrong:
+  `0233 - Porygon-Z` would find `Porygon` instead of `Porygon-Z`.
+- If that names a different Pokemon, the name wins: `0009 - Butterfree` sorts
+  as `0012 - Butterfree`, `0137 - Porygon-Z` as `0474 - Porygon-Z`. The file's
+  number is kept in `overruled_dex_number` and reported as a `warning`.
+- This includes names that pass as a typo: `Pidgeot` scores above
+  `TYPO_SIMILARITY_THRESHOLD` against `Pidgey`, yet `0016 - Pidgeot` sorts as
+  `0018 - Pidgeot`.
+- Regular variants find their own dex number and stay put (`Mega Charizard X`,
+  `Rose Bulbasaur`). Two Pokemon in one name, a real typo or `Nidoran` resolve
+  to nothing and keep the dex number.
 
 ### Classification Chain
 Four stages, in this order:
@@ -295,9 +321,11 @@ or 4, so the stage can add matches but never misfile anything.
 ### Error Handling
 - Typos in filenames: Create correct folder based on dex number from database,
   report the misspelling as a warning
-- Name does not resemble the database name: Keep it as a variant subfolder
-  under the dex number's Pokemon, report a warning. Nothing is silently merged
-  into the base form
+- Wrong dex number: A name that exactly and unambiguously names another Pokemon
+  wins over the number, report a warning
+- Name does not resemble the database name and names no other Pokemon: Keep it
+  as a variant subfolder under the dex number's Pokemon, report a warning.
+  Nothing is silently merged into the base form
 - Missing dex numbers: Check if it's a Pokeball, then look for an exact,
   unambiguous Pokemon name, then try the parent folder name
 - Still unresolvable `.3mf`: Moved to `_Unsorted/3mf/`
@@ -346,11 +374,13 @@ or 4, so the stage can add matches but never misfile anything.
 13. **Dash in name**: `0474 - Mega Porygon-Z - AMS.3mf` → `Designs/0474 - Porygon-Z/Mega Porygon-Z/`
 14. **Hyphenated variant**: `0658 Ash-Greninja - SPLIT - V1.1.3mf` → `Designs/0658 - Greninja/Ash-Greninja/`
 15. **Typo inside a variant**: `0658 - Ash-Grenimja - AMS.3mf` → `Designs/0658 - Greninja/Ash-Greninja/` (warning)
-16. **Unmatched name**: `0025 - Raichu - AMS.3mf` → `Designs/0025 - Pikachu/Raichu/` (warning)
+16. **Unmatched name**: `0006 - Gigantamax - AMS.3mf` → `Designs/0006 - Charizard/Gigantamax/` (warning)
 17. **No dex number**: `Rose+Bulbasaur+-+AMS+Profile.3mf` → `Designs/0001 - Bulbasaur/Rose Bulbasaur/` (warning)
 18. **No dex number, ambiguous**: `Pikachu and Eevee - AMS.3mf` → `_Unsorted/3mf/`
+19. **Wrong dex number**: `0009 - Butterfree - AMS profile - V1.1.3mf` → `Designs/0012 - Butterfree/` (warning)
+20. **Wrong dex number, looks like a typo**: `0016 - Pidgeot - AMS.3mf` → `Designs/0018 - Pidgeot/` (warning)
 
-Scenarios 1-5, 10 and 13-18 are covered by `tests/test_classifier.py`.
+Scenarios 1-5, 10 and 13-20 are covered by `tests/test_classifier.py`.
 
 ## Maintenance
 

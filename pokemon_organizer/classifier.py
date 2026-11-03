@@ -27,6 +27,7 @@ class Classification:
     kind: ClassificationKind
     misspelling: str | None = None
     resolved_by_name: bool = False
+    overruled_dex_number: str | None = None
 
     @property
     def relative_path(self) -> str:
@@ -206,7 +207,11 @@ def classify_variant(pokemon_name: str, base_name: str) -> VariantDecision:
 
 
 def classify_pokemon(
-    dex_number: str, base_name: str, pokemon_name: str, resolved_by_name: bool
+    dex_number: str,
+    base_name: str,
+    pokemon_name: str,
+    resolved_by_name: bool,
+    overruled_dex_number: str | None = None,
 ) -> Classification:
     variant = classify_variant(pokemon_name, base_name)
 
@@ -221,6 +226,11 @@ def classify_pokemon(
     note = variant.note
     if resolved_by_name:
         note = f"⚠️  No dex number, identified by name as {main_folder} ({variant.note})"
+    elif overruled_dex_number:
+        note = (
+            f"⚠️  Dex number {overruled_dex_number} contradicts the name, "
+            f"identified by name as {main_folder} ({variant.note})"
+        )
 
     return Classification(
         parts=parts,
@@ -228,7 +238,19 @@ def classify_pokemon(
         kind=variant.kind,
         misspelling=variant.misspelling,
         resolved_by_name=resolved_by_name,
+        overruled_dex_number=overruled_dex_number,
     )
+
+
+def find_contradicting_dex_number(
+    classification: Classification, dex_number: str, pokemon_name: str, dex: dict[str, str]
+) -> str | None:
+    if classification.kind == "base" and classification.misspelling is None:
+        return None
+    named_dex_number = find_dex_number_by_name(pokemon_name, dex)
+    if named_dex_number == dex_number:
+        return None
+    return named_dex_number
 
 
 def classify_name(raw_name: str, dex: dict[str, str]) -> Classification | None:
@@ -243,7 +265,21 @@ def classify_name(raw_name: str, dex: dict[str, str]) -> Classification | None:
             return classify_pokeball(normalized)
         after_dex = re.sub(rf"^{dex_number}\s*-?\s*", "", normalized)
         pokemon_name = " ".join(split_name_words(after_dex))
-        return classify_pokemon(dex_number, base_name, pokemon_name, resolved_by_name=False)
+        classification = classify_pokemon(
+            dex_number, base_name, pokemon_name, resolved_by_name=False
+        )
+        named_dex_number = find_contradicting_dex_number(
+            classification, dex_number, pokemon_name, dex
+        )
+        if named_dex_number is None:
+            return classification
+        return classify_pokemon(
+            named_dex_number,
+            dex[named_dex_number],
+            pokemon_name,
+            resolved_by_name=False,
+            overruled_dex_number=dex_number,
+        )
 
     pokeball = classify_pokeball(normalized)
     if pokeball is not None:
