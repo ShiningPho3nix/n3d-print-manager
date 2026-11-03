@@ -47,6 +47,13 @@ CASES = [
     ("0151 - Shiny Mew - AMS.3mf", "0151 - Mew/Shiny Mew", "variant"),
     # a wrong dex number must not turn the name into a variant
     ("0150 - Mewtwo - AMS.3mf", "0150 - Mewtwo", "base"),
+    # a slug uses hyphens as word separators and is capitalized when lowercase
+    ("0012-butterfree-all-profiles", "0012 - Butterfree", "base"),
+    ("0025-pikachu-christmas.3mf", "0025 - Pikachu/Christmas", "variant"),
+    ("0006-mega-charizard-x-all-profiles", "0006 - Charizard/Mega Charizard X", "variant"),
+    ("0250-ho-oh", "0250 - Ho-Oh", "base"),
+    # "All" in front of a profile marker belongs to the marker
+    ("0012 - Butterfree - All Profiles.3mf", "0012 - Butterfree", "base"),
 ]
 
 MISSPELLED = [

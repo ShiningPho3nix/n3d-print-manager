@@ -113,6 +113,7 @@ Every file goes through four stages, first match wins:
 | `Rose Bulbasaur - AMS Profile.3mf` (no dex number) | `Designs/0001 - Bulbasaur/Rose Bulbasaur/` |
 | `Pikachu and Eevee - AMS.3mf` (no dex number, two names) | `_Unsorted/3mf/` |
 | `preview.png` inside `0001 - Bulbasaur/` | `Designs/0001 - Bulbasaur/` |
+| `preview.png` inside `0012-butterfree-all-profiles/` | `Designs/0012 - Butterfree/` |
 | `mystery.3mf` | `_Unsorted/3mf/` |
 
 There is no list of variant keywords. The dex number picks the Pokemon, its
@@ -120,8 +121,9 @@ name is searched inside the file name (typos and missing accents included),
 and whatever surrounds it is the variant. Text in front of the name or glued
 on with a hyphen keeps the full name (`Mega Charizard X`, `Ash-Greninja`), a
 separate suffix stands alone (`Christmas`). Typos are corrected in the folder
-name and reported as warnings. URL encoded names (`0025+-+Pikachu.3mf`) and
-nested archives (up to 5 levels) are handled.
+name and reported as warnings. URL encoded names (`0025+-+Pikachu.3mf`),
+slugs (`0025-pikachu-christmas.3mf`) and nested archives (up to 5 levels) are
+handled.
 
 ## Customizing
 

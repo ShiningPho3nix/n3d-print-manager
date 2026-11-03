@@ -217,6 +217,7 @@ events so they can be reviewed. A correct base form stays a verbose `detail`.
 ### File Naming Patterns
 - Format 1: `{dex#} - {name} - {profile} - {version}.3mf`
 - Format 2: `{dex#}+-+{name}+-+{profile}.3mf` (URL encoded)
+- Format 3: `{dex#}-{name}-{variant}` (URL slug, typical for archive names)
 - Pokeballs: `{ball_name} - {profile}.3mf` (no dex number)
 
 ## Important Implementation Details
@@ -228,6 +229,14 @@ events so they can be reviewed. A correct base form stays a verbose `detail`.
 - Profile keywords (`AMS`, `SPLIT`, `MC`, `Profile`, `V[0-9]`, `w/`) are matched
   **anchored at the start of a word**, never as a substring. `Chimchar`
   contains `mc` and would otherwise be read as a profile marker.
+- `All` directly in front of a profile keyword belongs to it, so `All Profiles`
+  does not leave a variant `All`. A plain `all` keyword would cut `Alolan`,
+  because keywords are anchored at the start of a word only.
+- A name without any whitespace but with hyphens is a slug
+  (`0012-butterfree-all-profiles`, the typical archive name). Its hyphens
+  become spaces before anything else, an all lowercase slug is capitalized with
+  `string.capwords`. Dashes inside database names survive this, names are
+  compared through `comparison_key()`: `0250-ho-oh` still resolves to `Ho-Oh`.
 - The base name is located with word boundaries, not a plain substring test.
   Otherwise `Mewtwo` would be read as variant `two` of `Mew`.
 
@@ -379,8 +388,10 @@ or 4, so the stage can add matches but never misfile anything.
 18. **No dex number, ambiguous**: `Pikachu and Eevee - AMS.3mf` → `_Unsorted/3mf/`
 19. **Wrong dex number**: `0009 - Butterfree - AMS profile - V1.1.3mf` → `Designs/0012 - Butterfree/` (warning)
 20. **Wrong dex number, looks like a typo**: `0016 - Pidgeot - AMS.3mf` → `Designs/0018 - Pidgeot/` (warning)
+21. **Slug name**: `0025-pikachu-christmas.3mf` → `Designs/0025 - Pikachu/Christmas/`
+22. **All Profiles**: `0012 - Butterfree - All Profiles.3mf` → `Designs/0012 - Butterfree/`
 
-Scenarios 1-5, 10 and 13-20 are covered by `tests/test_classifier.py`.
+Scenarios 1-5, 10 and 13-22 are covered by `tests/test_classifier.py`.
 
 ## Maintenance
 
@@ -425,6 +436,9 @@ Defender may ask. Signing costs money and is out of scope.
 - A profile segment ends the name, so a variant that appears **after** the
   profile marker is dropped: `0004 - Charmander - SPLIT Profile - No Feet - V3.1`
   sorts as the base form, `No Feet` is lost.
+- A slug cannot tell a word separator from a hyphen that belongs to a variant:
+  `0658-ash-greninja` sorts into `Ash Greninja`, a separate folder from
+  `Ash-Greninja`.
 - Windows reserved device names (CON, NUL, AUX, PRN, COM1-9, LPT1-9) are not
   special cased. No Pokemon name collides with them, and every main folder is
   prefixed with its dex number, so this is theoretical.
