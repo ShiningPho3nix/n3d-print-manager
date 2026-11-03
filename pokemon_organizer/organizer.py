@@ -155,6 +155,7 @@ def organize(base_dir: Path | None = None, emit: EventSink = null_sink) -> Organ
                 classification.kind == "unmatched"
                 or classification.misspelling is not None
                 or classification.resolved_by_name
+                or classification.overruled_dex_number is not None
             )
             emit(
                 Event(
