@@ -1,4 +1,5 @@
 import re
+import string
 import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
@@ -7,6 +8,7 @@ from typing import Literal
 from .config import POKEBALLS_FOLDER
 
 BALL_KEYWORD = "ball"
+PROFILE_QUANTIFIER = "all"
 
 ClassificationKind = Literal["base", "variant", "unmatched", "pokeball"]
 
@@ -60,10 +62,17 @@ def sanitize_path_component(component: str) -> str:
     return component.lstrip()
 
 
+def normalize_slug(name: str) -> str:
+    if "-" not in name or any(char.isspace() for char in name):
+        return name
+    spaced = name.replace("-", " ")
+    return string.capwords(spaced) if spaced.islower() else spaced
+
+
 def normalize_name(raw_name: str) -> str:
     normalized = raw_name.replace("+", " ")
     normalized = normalized.removeprefix("#")
-    return strip_extension(normalized)
+    return normalize_slug(strip_extension(normalized))
 
 
 def split_name_words(text: str) -> list[str]:
@@ -71,6 +80,8 @@ def split_name_words(text: str) -> list[str]:
     for segment in SEGMENT_SEPARATOR_PATTERN.split(text):
         for word in segment.split():
             if PROFILE_WORD_PATTERN.match(word):
+                if words and words[-1].casefold() == PROFILE_QUANTIFIER:
+                    words.pop()
                 return words
             words.append(word)
     return words
